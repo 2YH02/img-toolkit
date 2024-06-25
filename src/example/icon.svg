@@ -1,0 +1,9 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Image Icon -->
+  <rect x="15" y="20" width="70" height="50" rx="5" ry="5" stroke="black" stroke-width="2" fill="none"/>
+  <!-- Resizing Arrows -->
+  <polygon points="10,10 20,10 15,5" fill="black"/>
+  <line x1="15" y1="10" x2="10" y2="10" stroke="black" stroke-width="2"/>
+  <polygon points="90,90 80,90 85,95" fill="black"/>
+  <line x1="85" y1="90" x2="90" y2="90" stroke="black" stroke-width="2"/>
+</svg>

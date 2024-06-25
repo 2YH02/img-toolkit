@@ -2,6 +2,8 @@
 
 A library for resizing and editing images.
 
+Demo: https://2yh02.github.io/img-toolkit
+
 ## Table of Contents
 
 - [Installation](#installation)
