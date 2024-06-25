@@ -26,8 +26,11 @@ const imagePreviewForm = () => {
       };
 
       const imagePathname = new URL(imagePreviewtEl.src).pathname;
-      console.log(imagePathname);
-      if (!imagePathname || imagePathname === "/") {
+      if (
+        !imagePathname ||
+        imagePathname === "/img-toolkit/" ||
+        imagePathname === "/"
+      ) {
         watingTextEl.innerText = "Please press the convert button!";
       } else {
         watingTextEl.style.display = "none";
