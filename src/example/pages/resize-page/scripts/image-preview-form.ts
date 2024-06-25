@@ -26,6 +26,7 @@ const imagePreviewForm = () => {
       };
 
       const imagePathname = new URL(imagePreviewtEl.src).pathname;
+      console.log(imagePathname);
       if (!imagePathname || imagePathname === "/") {
         watingTextEl.innerText = "Please press the convert button!";
       } else {
