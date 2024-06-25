@@ -1,0 +1,7 @@
+src
+tests
+vite
+node_modules
+tsconfig.json
+dist/example
+dist/types/example

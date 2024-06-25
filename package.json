@@ -1,0 +1,42 @@
+{
+  "name": "img-toolkit",
+  "author": "2YH02",
+  "license": "MIT",
+  "version": "1.0.1",
+  "description": "A library for resizing and editing images",
+  "type": "module",
+  "keywords": [
+    "image",
+    "resize",
+    "edit",
+    "javascript",
+    "cjs",
+    "esm"
+  ],
+  "main": "dist/cjs/index.cjs",
+  "module": "dist/esm/index.js",
+  "types": "./types.d.ts",
+  "files": [
+    "dist/cjs",
+    "dist/esm",
+    "types.d.ts",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.cjs",
+      "types": "./types.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "vite --config ./vite/example/vite.config.ts",
+    "build": "tsc && vite build --config ./vite/example/vite.config.ts && vite build --config ./vite/libs/vite.config.ts",
+    "preview": "vite preview --config ./vite/example/vite.config.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.8",
+    "typescript": "^5.2.2",
+    "vite": "^5.3.1"
+  }
+}
