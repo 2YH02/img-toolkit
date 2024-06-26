@@ -70,6 +70,9 @@ const content = /* html */ `
     />
   </div>
   <p class="color-main font-6" id="wating-text">Waiting for photo selection...</p>
+  <div>
+    <a class="button mt-3" id="image-download-button" style="display: none">download</a>
+  </div>
 </section>
 `;
 

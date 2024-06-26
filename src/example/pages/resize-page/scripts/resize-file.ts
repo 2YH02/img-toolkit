@@ -39,6 +39,10 @@ const handleClickTransform = () => {
     "resample-input"
   ) as HTMLInputElement;
 
+  const imageDownButtonEl = document.getElementById(
+    "image-download-button"
+  ) as HTMLAnchorElement;
+
   qualityInput.addEventListener("change", (e) => {
     const target = e.target as HTMLInputElement;
     if (Number(target.value) < 0) {
@@ -126,7 +130,12 @@ const handleClickTransform = () => {
       if (!imagePathname || imagePathname === "/") {
         watingTextEl.innerText = "Please press the convert button!";
       } else {
+        const src = previewImage.src;
+
         watingTextEl.style.display = "none";
+        imageDownButtonEl.style.display = "block";
+        imageDownButtonEl.href = src;
+        imageDownButtonEl.download = src.split("/")[src.split("/").length - 1];
       }
 
       formatSizeEl.innerText = `${Math.floor(resizedFile.size / 1024)} kB`;
