@@ -4,6 +4,8 @@ A library for resizing and editing images.
 
 Demo: https://2yh02.github.io/img-toolkit
 
+🦀 A Rust-based version is currently in development — check it out here: [img-toolkit-rust](https://github.com/2YH02/img-toolkit-rust)
+
 ## Table of Contents
 
 - [Installation](#installation)
