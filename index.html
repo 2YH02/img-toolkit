@@ -1,36 +1,127 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
       content="Resize and edit images online with ease."
     />
-    <link rel="icon" type="image/svg+xml" href="./assets/icon-DyE10UtZ.svg" />
-
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <title>Image Toolkit</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Playwrite+DE+Grund:wght@100..400&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
       rel="stylesheet"
     />
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image Toolkit</title>
-    <meta
-      name="google-site-verification"
-      content="_D-q2OEpIFMg-iTw537Xhv-0V-AqL19W8gt9RYZ7rUg"
-    />
-    <script type="module" crossorigin src="./assets/example-BDD7QUJ6.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/example-DvjIlg8J.css">
+    <script src="./main.js" type="module" defer></script>
+    <link rel="stylesheet" href="./main.css" />
   </head>
   <body>
-    <header>
-      <nav>
-        <a href="#/" id="home-link">resize</a>
-        <a href="#/edit" id="about-link">edit</a>
-      </nav>
-    </header>
-    <div id="app"></div>
+    <div id="app">
+      <h1 class="max-width mx-auto">Image Resize</h1>
+      <section class="container image-form-wrap">
+        <div class="image-form">
+          <div class="choose-file">
+            <p>File Upload</p>
+            <div class="divider"></div>
+            <div class="image-input-wrap">
+              <label for="image-input" class="button">Select File</label>
+              <input
+                type="file"
+                id="image-input"
+                accept="image/*"
+                style="display: none"
+              />
+              <div class="ml-3 image-info-container">
+                <p id="image-name"></p>
+                <p id="image-size"></p>
+              </div>
+            </div>
+          </div>
+          <div class="choose-file">
+            <p>option</p>
+            <div class="divider"></div>
+            <div class="option-container">
+              <div class="option-input-wrap">
+                <label for="quality-input">quality</label>
+                <input
+                  type="number"
+                  id="quality-input"
+                  min="0.1"
+                  max="1"
+                  step="0.05"
+                  value="0.7"
+                />
+              </div>
+              <div class="option-input-wrap">
+                <label for="brightness-input">brightness</label>
+                <input
+                  type="number"
+                  id="brightness-input"
+                  min="0.1"
+                  max="1"
+                  step="0.05"
+                  value="0.5"
+                />
+              </div>
+            </div>
+            <div class="option-container">
+              <div class="option-input-wrap">
+                <label for="width-input">width</label>
+                <input type="number" id="width-input" step="10" value="550" />
+              </div>
+              <div class="option-input-wrap">
+                <label for="height-input">height</label>
+                <input type="number" id="height-input" step="10" value="0" />
+              </div>
+            </div>
+            <div class="mb-3 color-main font-4">
+              If either width or height is set to 0, it will be automatically
+              adjusted to maintain the aspect ratio
+            </div>
+            <div class="option-container">
+              <div class="option-input-wrap mb-3">
+                <label for="resample-input">resample</label>
+                <input
+                  type="number"
+                  id="resample-input"
+                  min="0"
+                  max="10"
+                  step="1"
+                  value="4"
+                />
+              </div>
+              <div class="center option-input-wrap">
+                <label for="format-input">format</label>
+                <select id="format-input" name="imageFormat">
+                  <option value="jpg">JPG</option>
+                  <option value="png">PNG</option>
+                  <option value="webp" selected>WEBP</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div>
+            <button class="button" id="convert-button">Convert</button>
+          </div>
+        </div>
+      </section>
+      <section class="container image-preview-wrap">
+        <p id="format-image-size" class="mb-3"></p>
+        <div id="preview-container" style="display: none">
+          <img id="image-preview" src="" alt="Image Preview" />
+        </div>
+        <p class="color-main font-6" id="wating-text">
+          Waiting for photo selection...
+        </p>
+        <div>
+          <a class="button mt-3" id="download-button" style="display: none"
+            >download</a
+          >
+        </div>
+      </section>
+    </div>
   </body>
 </html>
