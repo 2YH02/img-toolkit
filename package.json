@@ -1,42 +1,35 @@
 {
   "name": "img-toolkit",
-  "author": "2YH02",
+  "version": "2.0.0",
   "license": "MIT",
-  "version": "1.0.2",
-  "description": "A library for resizing and editing images",
-  "type": "module",
-  "keywords": [
-    "image",
-    "resize",
-    "edit",
-    "javascript",
-    "cjs",
-    "esm"
-  ],
-  "main": "dist/cjs/index.cjs",
-  "module": "dist/esm/index.js",
-  "types": "./types.d.ts",
+  "main": "dist/resizeImage.js",
+  "types": "dist/types/resizeImage.d.ts",
+  "module": "dist/resizeImage.js",
   "files": [
-    "dist/cjs",
-    "dist/esm",
-    "types.d.ts",
-    "README.md"
+    "dist",
+    "pkg"
   ],
   "exports": {
     ".": {
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.cjs",
-      "types": "./types.d.ts"
+      "types": "./dist/types/resizeImage.d.ts",
+      "import": "./dist/resizeImage.js",
+      "require": "./dist/resizeImage.js"
     }
   },
   "scripts": {
-    "dev": "vite --config ./vite/example/vite.config.ts",
-    "build": "tsc && vite build --config ./vite/example/vite.config.ts && vite build --config ./vite/libs/vite.config.ts",
-    "preview": "vite preview --config ./vite/example/vite.config.ts"
+    "build:wasm": "wasm-pack build --target web",
+    "build:ts": "tsc",
+    "build": "npm run build:wasm && npm run build:ts",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "@types/node": "^20.14.8",
-    "typescript": "^5.2.2",
-    "vite": "^5.3.1"
-  }
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "wasm",
+    "image",
+    "resize",
+    "toolkit",
+    "rust"
+  ]
 }

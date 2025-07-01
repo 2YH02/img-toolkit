@@ -4,16 +4,24 @@ A library for resizing and editing images.
 
 Demo: https://2yh02.github.io/img-toolkit
 
-🦀 A Rust-based version is currently in development — check it out here: [img-toolkit-rust](https://github.com/2YH02/img-toolkit-rust)
-
 ## Table of Contents
 
+- [Features](#Features)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Functions](#functions)
-- [Options](#options)
+- [ResizeOptions](#ResizeOptions)
+- [Vite Setup for WASM](#vite-setup-for-wasm)
 - [License](#license)
 - [Author](#author)
+
+## Features
+
+- ⚡ **Fast & Efficient**: Powered by Rust and WebAssembly.
+- 📸 **Supports JPEG, PNG, WebP** formats.
+- 📐 **Resizing** with automatic aspect-ratio handling.
+- 🎚️ **Adjust brightness** easily.
+- 🔍 **Multiple resampling filters** (Nearest, Triangle, CatmullRom, Gaussian, Lanczos3).
 
 ## Installation
 
@@ -51,7 +59,7 @@ resizeImage(file, options).then((resizedFile) => {
 ## Functions
 
 ```javascript
-resizeImage(file: File, options: ImageResizingOption): Promise<File>
+resizeImage(file: File, options: ResizeOptions): Promise<File>
 ```
 
 Resizes and edits an image file according to the provided options.
@@ -59,22 +67,41 @@ Resizes and edits an image file according to the provided options.
 ### Parameters:
 
 - file (File): The image file to be resized and edited.
-- options (ImageResizingOption): The options for resizing and editing.
+- options (ResizeOptions): The options for resizing and editing.
 
 ### Returns:
 
 - Promise<File>: A promise that resolves to the resized and edited image file.
 
-## Options
+## ResizeOptions
 
-### The Option interface allows you to specify the following properties:
+| Option       | Type   | Description                                                                                       |
+| ------------ | ------ | ------------------------------------------------------------------------------------------------- |
+| `width`      | number | (Optional) Target width in pixels. If omitted, width is auto-adjusted.                            |
+| `height`     | number | (Optional) Target height in pixels. If omitted, height is auto-adjusted.                          |
+| `quality`    | number | Image quality level ranging from 0.0 (lowest) to 1.0 (highest quality).                           |
+| `format`     | string | Output format (`"jpg"`, `"png"`, `"webp"`).                                                       |
+| `brightness` | number | (Optional) Brightness level from 0.0 (darkest) to 1.0 (brightest). Defaults to 0.5 if omitted.    |
+| `resampling` | number | (Optional) Resampling quality from 0 (fastest) to 10 (highest quality). Defaults to 4 if omitted. |
 
-- width (number | "auto"): The desired width of the resized image. Use "auto" to maintain aspect ratio.
-- height (number | "auto"): The desired height of the resized image. Use "auto" to maintain aspect ratio.
-- quality (number): The quality of the resized image (0 to 1).
-- format ("png" | "webp" | "jpg"): The format of the resized image.
-- brightness (number): The brightness adjustment factor (default is 0.4).
-- resampling (number): The number of resampling iterations (default is 0).
+## Vite Setup for WASM
+
+To use img-toolkit with Vite, you must disable pre-optimization for the package to prevent WebAssembly loading issues:
+
+### vite.config.js
+
+```javascript
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  optimizeDeps: {
+    exclude: ["img-toolkit"],
+  },
+});
+```
+
+Without this setting, Vite may attempt to pre-bundle img-toolkit and break WASM module resolution.
+This ensures that WebAssembly is loaded correctly at runtime via dynamic import().
 
 ## License
 
