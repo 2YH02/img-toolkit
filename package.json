@@ -1,6 +1,6 @@
 {
   "name": "img-toolkit",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "license": "MIT",
   "main": "dist/resizeImage.js",
   "types": "dist/types/resizeImage.d.ts",
@@ -19,8 +19,7 @@
   "scripts": {
     "build:wasm": "wasm-pack build --target web",
     "build:ts": "tsc",
-    "build": "npm run build:wasm && npm run build:ts",
-    "prepublishOnly": "npm run build"
+    "build": "npm run build:wasm && npm run build:ts"
   },
   "devDependencies": {
     "typescript": "^5.3.3"
