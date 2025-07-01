@@ -1,4 +1,4 @@
-import { resizeImage } from "../dist/resizeImage.js";
+import { resizeImage } from "https://cdn.jsdelivr.net/npm/img-toolkit@2.0.2/dist/resizeImage.min.js";
 
 const fileInput = document.getElementById("image-input");
 const convertBtn = document.getElementById("convert-button");
