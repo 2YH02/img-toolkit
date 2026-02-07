@@ -10,7 +10,9 @@ Demo: https://2yh02.github.io/img-toolkit
 - [Installation](#installation)
 - [Usage](#usage)
 - [Functions](#functions)
-- [ResizeOptions](#ResizeOptions)
+- [Options](#options)
+- [Quality Behavior](#quality-behavior)
+- [Quality Comparison](#quality-comparison)
 - [Vite Setup for WASM](#vite-setup-for-wasm)
 - [License](#license)
 - [Author](#author)
@@ -34,55 +36,120 @@ yarn add img-toolkit
 
 ## Usage
 
-Here's a basic example of how to use the img-toolkit library:
+### New API (recommended)
 
 ```javascript
-import { resizeImage } from 'img-toolkit';
+import {
+  processImage,
+  resize,
+  convertFormat,
+  adjustBrightness,
+} from "img-toolkit";
 
-const file = // your image file
-const options = {
+const resized = await resize(file, { width: 800, resampling: 4 });
+const brighter = await adjustBrightness(file, { brightness: 0.6 });
+const converted = await convertFormat(file, { format: "webp", quality: 0.8 });
+
+const processed = await processImage(file, {
   width: 800,
   height: 600,
   quality: 0.8,
-  format: 'jpg',
+  format: "jpg",
   brightness: 0.5,
-  resampling: 2
-};
-
-resizeImage(file, options).then((resizedFile) => {
-  console.log(resizedFile);
-}).catch((error) => {
-  console.error(error);
+  resampling: 2,
 });
 ```
+
+### Legacy API (deprecated in 2.x)
+
+```javascript
+import { resizeImage } from "img-toolkit";
+
+const file = // your image file
+const output = await resizeImage(file, {
+  width: 800,
+  height: 600,
+  quality: 0.8,
+  format: "jpg",
+  brightness: 0.5,
+  resampling: 2,
+});
+```
+
+`resizeImage(file, options)` is still supported in `2.x` and will be removed in `3.0.0`.
 
 ## Functions
 
 ```javascript
-resizeImage(file: File, options: ResizeOptions): Promise<File>
+processImage(file: File, options: ProcessImageOptions): Promise<File>
+resize(file: File, options: ResizeOnlyOptions): Promise<File>
+convertFormat(file: File, options: ConvertFormatOptions): Promise<File>
+adjustBrightness(file: File, options: BrightnessOptions): Promise<File>
 ```
 
-Resizes and edits an image file according to the provided options.
+## Options
 
-### Parameters:
-
-- file (File): The image file to be resized and edited.
-- options (ResizeOptions): The options for resizing and editing.
-
-### Returns:
-
-- Promise<File>: A promise that resolves to the resized and edited image file.
-
-## ResizeOptions
+### `ProcessImageOptions`
 
 | Option       | Type   | Description                                                                                       |
 | ------------ | ------ | ------------------------------------------------------------------------------------------------- |
-| `width`      | number | (Optional) Target width in pixels. If omitted, width is auto-adjusted.                            |
-| `height`     | number | (Optional) Target height in pixels. If omitted, height is auto-adjusted.                          |
-| `quality`    | number | Image quality level ranging from 0.0 (lowest) to 1.0 (highest quality).                           |
-| `format`     | string | Output format (`"jpg"`, `"png"`, `"webp"`).                                                       |
-| `brightness` | number | (Optional) Brightness level from 0.0 (darkest) to 1.0 (brightest). Defaults to 0.5 if omitted.    |
-| `resampling` | number | (Optional) Resampling quality from 0 (fastest) to 10 (highest quality). Defaults to 4 if omitted. |
+| `width`      | number | (Optional) Target width in pixels. If omitted, width is auto-adjusted.                           |
+| `height`     | number | (Optional) Target height in pixels. If omitted, height is auto-adjusted.                         |
+| `quality`    | number | (Optional) 0.0 to 1.0. Effective for JPEG and WebP output.                                        |
+| `format`     | string | Output format (`"jpg"`, `"png"`, `"webp"`).                                                      |
+| `brightness` | number | (Optional) 0.0 to 1.0. Defaults to 0.5.                                                           |
+| `resampling` | number | (Optional) 0 to 10. Defaults to 4.                                                                |
+
+### `ResizeOnlyOptions`
+
+| Option       | Type   | Description                                            |
+| ------------ | ------ | ------------------------------------------------------ |
+| `width`      | number | (Optional) Target width in pixels.                     |
+| `height`     | number | (Optional) Target height in pixels.                    |
+| `resampling` | number | (Optional) 0 to 10. Defaults to 4.                     |
+| `quality`    | number | (Optional) 0.0 to 1.0. Effective if source is JPEG.    |
+
+### `ConvertFormatOptions`
+
+| Option    | Type   | Description                                            |
+| --------- | ------ | ------------------------------------------------------ |
+| `format`  | string | Output format (`"jpg"`, `"png"`, `"webp"`).           |
+| `quality` | number | (Optional) 0.0 to 1.0. Effective for JPEG and WebP output. |
+
+### `BrightnessOptions`
+
+| Option       | Type   | Description                                         |
+| ------------ | ------ | --------------------------------------------------- |
+| `brightness` | number | 0.0 to 1.0                                          |
+| `quality`    | number | (Optional) 0.0 to 1.0. Effective if source is JPEG. |
+
+## Quality Behavior
+
+- `jpg` output: `quality` is applied.
+- `png` output: `quality` is not applied (lossless PNG encoding).
+- `webp` output: `quality` is applied through the browser's native lossy WebP encoder.
+
+## Quality Comparison
+
+Below is a simple visual/file-size comparison using the same source image.
+
+| Variant | Size |
+| --- | --- |
+| Original | 747 KB |
+| JavaScript Canvas API output | 49.3 KB |
+| Rust/WASM output (`img-toolkit`) | 41.3 KB |
+
+### Original
+
+![Original wolf image](./docs/assets/quality/wolf.jpg)
+
+### JavaScript Canvas API output
+
+![Canvas API output](./docs/assets/quality/wolf.js.jpg)
+
+### Rust/WASM output
+
+![Rust WASM output](./docs/assets/quality/wolf.rust.jpg)
 
 ## Vite Setup for WASM
 

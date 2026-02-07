@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
+use web_sys::console;
 
 use image::codecs::webp::WebPEncoder;
 use image::{
@@ -56,11 +57,11 @@ pub fn resize_image(data: &[u8], options: JsValue) -> Result<Box<[u8]>, JsValue>
             DynamicImage::ImageRgba8(buf)
         }
         (Some(w), None) => {
-            let h = (((w as f32) * (orig_h as f32)) / (orig_w as f32)).round() as u32;
+            let h = scaled_height_for_width(w, orig_w, orig_h);
             img.resize(w, h, filter)
         }
         (None, Some(h)) => {
-            let w = (((h as f32) * (orig_w as f32)) / (orig_h as f32)).round() as u32;
+            let w = scaled_width_for_height(h, orig_w, orig_h);
             img.resize(w, h, filter)
         }
         (None, None) => img,
@@ -108,12 +109,10 @@ fn encode_image(
                 .map_err(|e| JsValue::from_str(&format!("JPEG encode failed: {}", e)))?;
         }
         ImageFormat::Png => {
-            let recompressed = compress_to_jpeg(image, quality)?;
-            encode_as_png(&recompressed, &mut buffer)?;
+            encode_as_png(image, &mut buffer)?;
         }
         ImageFormat::WebP => {
-            let recompressed = compress_to_jpeg(image, quality)?;
-            encode_as_webp(&recompressed, &mut buffer)?;
+            encode_as_webp(image, &mut buffer)?;
         }
         _ => {
             image
@@ -125,25 +124,13 @@ fn encode_image(
     Ok(buffer)
 }
 
-fn compress_to_jpeg(image: &DynamicImage, quality: u8) -> Result<DynamicImage, JsValue> {
-    let mut temp_jpeg = Vec::new();
-    let mut jpeg_encoder = JpegEncoder::new_with_quality(&mut temp_jpeg, quality);
-    jpeg_encoder
-        .encode_image(image)
-        .map_err(|e| JsValue::from_str(&format!("Interim JPEG encode failed: {}", e)))?;
-
-    image
-        ::load_from_memory(&temp_jpeg)
-        .map_err(|e| JsValue::from_str(&format!("JPEG decode failed: {}", e)))
-}
-
 fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> Result<(), JsValue> {
     let rgba = image.to_rgba8();
     let (w, h) = rgba.dimensions();
 
     let encoder = PngEncoder::new_with_quality(
         buffer,
-        CompressionType::Best,
+        CompressionType::Default,
         image::codecs::png::FilterType::Adaptive
     );
 
@@ -152,18 +139,75 @@ fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> Result<(), JsVal
         .map_err(|e| JsValue::from_str(&format!("PNG encode failed: {}", e)))
 }
 
-fn encode_as_webp(image: &DynamicImage, buffer: &mut Vec<u8>) -> Result<(), JsValue> {
+fn encode_as_webp(
+    image: &DynamicImage,
+    buffer: &mut Vec<u8>
+) -> Result<(), JsValue> {
     let rgba = image.to_rgba8();
     let (width, height) = rgba.dimensions();
 
     let encoder = WebPEncoder::new_lossless(buffer);
     encoder
         .encode(&rgba, width, height, ExtendedColorType::Rgba8)
-        .map_err(|e| JsValue::from_str(&format!("WebP encode failed: {}", e)))
+        .map_err(|e| {
+            console::error_1(&JsValue::from_str(&format!("WebP encode failed: {}", e)));
+            JsValue::from_str("Image encoding failed")
+        })
 }
 
 fn map_brightness(x: f32) -> i32 {
     let x = x.clamp(0.0, 1.0);
     let v = x * 510.0 - 255.0;
     v.round() as i32
+}
+
+fn scaled_height_for_width(width: u32, orig_w: u32, orig_h: u32) -> u32 {
+    (((width as f32) * (orig_h as f32)) / (orig_w as f32)).round() as u32
+}
+
+fn scaled_width_for_height(height: u32, orig_w: u32, orig_h: u32) -> u32 {
+    (((height as f32) * (orig_w as f32)) / (orig_h as f32)).round() as u32
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn map_brightness_clamps_range() {
+        assert_eq!(map_brightness(-1.0), -255);
+        assert_eq!(map_brightness(0.0), -255);
+        assert_eq!(map_brightness(1.0), 255);
+        assert_eq!(map_brightness(2.0), 255);
+    }
+
+    #[test]
+    fn map_brightness_midpoint_is_zero() {
+        assert_eq!(map_brightness(0.5), 0);
+    }
+
+    #[test]
+    fn filter_type_mapping_is_stable() {
+        assert_eq!(get_filter_type(0), FilterType::Nearest);
+        assert_eq!(get_filter_type(3), FilterType::Triangle);
+        assert_eq!(get_filter_type(5), FilterType::CatmullRom);
+        assert_eq!(get_filter_type(7), FilterType::Gaussian);
+        assert_eq!(get_filter_type(10), FilterType::Lanczos3);
+        assert_eq!(get_filter_type(99), FilterType::Lanczos3);
+    }
+
+    #[test]
+    fn parse_format_supports_expected_aliases() {
+        assert_eq!(parse_format("png"), Some(ImageFormat::Png));
+        assert_eq!(parse_format("jpg"), Some(ImageFormat::Jpeg));
+        assert_eq!(parse_format("jpeg"), Some(ImageFormat::Jpeg));
+        assert_eq!(parse_format("webp"), Some(ImageFormat::WebP));
+        assert_eq!(parse_format("gif"), None);
+    }
+
+    #[test]
+    fn aspect_ratio_helpers_round_as_expected() {
+        assert_eq!(scaled_height_for_width(400, 1200, 800), 267);
+        assert_eq!(scaled_width_for_height(267, 1200, 800), 401);
+    }
 }

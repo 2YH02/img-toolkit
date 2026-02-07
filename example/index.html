@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Playwrite+DE+Grund:wght@100..400&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <script src="./main.js" type="module" defer></script>
@@ -20,7 +20,10 @@
   </head>
   <body>
     <div id="app">
-      <h1 class="max-width mx-auto">Image Resize</h1>
+      <h1 class="max-width mx-auto">Image Toolkit Playground</h1>
+      <p class="hero-subtitle">
+        Fast browser image processing powered by Rust + WebAssembly
+      </p>
       <section class="container image-form-wrap">
         <div class="image-form">
           <div class="choose-file">
@@ -41,10 +44,34 @@
             </div>
           </div>
           <div class="choose-file">
-            <p>option</p>
+            <p>Operation</p>
             <div class="divider"></div>
+            <div class="option-input-wrap">
+              <label for="operation-input">mode</label>
+              <select id="operation-input" name="operation">
+                <option value="process" selected>processImage</option>
+                <option value="resize">resize</option>
+                <option value="convert">convertFormat</option>
+                <option value="brightness">adjustBrightness</option>
+              </select>
+            </div>
+            <p id="mode-help" class="color-main font-4 mb-2"></p>
+          </div>
+          <div class="choose-file">
+            <p>Options</p>
+            <div class="divider"></div>
+            <div class="option-container" id="format-row">
+              <div class="center option-input-wrap">
+                <label for="format-input">format</label>
+                <select id="format-input" name="imageFormat">
+                  <option value="jpg">JPG</option>
+                  <option value="png">PNG</option>
+                  <option value="webp" selected>WEBP</option>
+                </select>
+              </div>
+            </div>
             <div class="option-container">
-              <div class="option-input-wrap">
+              <div class="option-input-wrap" id="quality-wrap">
                 <label for="quality-input">quality</label>
                 <input
                   type="number"
@@ -55,7 +82,7 @@
                   value="0.7"
                 />
               </div>
-              <div class="option-input-wrap">
+              <div class="option-input-wrap" id="brightness-wrap">
                 <label for="brightness-input">brightness</label>
                 <input
                   type="number"
@@ -67,12 +94,13 @@
                 />
               </div>
             </div>
+            <p id="quality-help" class="font-4 mb-2"></p>
             <div class="option-container">
-              <div class="option-input-wrap">
+              <div class="option-input-wrap" id="width-wrap">
                 <label for="width-input">width</label>
                 <input type="number" id="width-input" step="10" value="550" />
               </div>
-              <div class="option-input-wrap">
+              <div class="option-input-wrap" id="height-wrap">
                 <label for="height-input">height</label>
                 <input type="number" id="height-input" step="10" value="0" />
               </div>
@@ -82,7 +110,7 @@
               adjusted to maintain the aspect ratio
             </div>
             <div class="option-container">
-              <div class="option-input-wrap mb-3">
+              <div class="option-input-wrap mb-3" id="resample-wrap">
                 <label for="resample-input">resample</label>
                 <input
                   type="number"
@@ -93,27 +121,21 @@
                   value="4"
                 />
               </div>
-              <div class="center option-input-wrap">
-                <label for="format-input">format</label>
-                <select id="format-input" name="imageFormat">
-                  <option value="jpg">JPG</option>
-                  <option value="png">PNG</option>
-                  <option value="webp" selected>WEBP</option>
-                </select>
-              </div>
             </div>
           </div>
           <div>
-            <button class="button" id="convert-button">Convert</button>
+            <button class="button" id="convert-button">Run</button>
           </div>
         </div>
       </section>
       <section class="container image-preview-wrap">
+        <p id="status-text" class="mb-2"></p>
+        <p id="error-text" class="mb-2"></p>
         <p id="format-image-size" class="mb-3"></p>
         <div id="preview-container" style="display: none">
           <img id="image-preview" src="" alt="Image Preview" />
         </div>
-        <p class="color-main font-6" id="wating-text">
+        <p class="color-main font-6" id="waiting-text">
           Waiting for photo selection...
         </p>
         <div>
