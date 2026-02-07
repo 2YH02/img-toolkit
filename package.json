@@ -1,6 +1,7 @@
 {
   "name": "img-toolkit",
   "version": "2.1.0",
+  "type": "module",
   "license": "MIT",
   "main": "dist/resizeImage.js",
   "types": "dist/types/resizeImage.d.ts",
@@ -13,7 +14,7 @@
     ".": {
       "types": "./dist/types/resizeImage.d.ts",
       "import": "./dist/resizeImage.js",
-      "require": "./dist/resizeImage.js"
+      "default": "./dist/resizeImage.js"
     }
   },
   "scripts": {
