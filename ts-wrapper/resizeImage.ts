@@ -5,6 +5,10 @@ export type ImageFormat = "png" | "jpg" | "webp";
 export type ProcessImageOptions = {
   width?: number;
   height?: number;
+  /**
+   * 0.0 to 1.0. Currently effective for JPEG output only.
+   * PNG and WebP are encoded in lossless mode in the current implementation.
+   */
   quality?: number;
   format: ImageFormat;
   brightness?: number;
@@ -15,16 +19,25 @@ export type ResizeOnlyOptions = {
   width?: number;
   height?: number;
   resampling?: number;
+  /**
+   * 0.0 to 1.0. Effective when the source image is JPEG.
+   */
   quality?: number;
 };
 
 export type ConvertFormatOptions = {
   format: ImageFormat;
+  /**
+   * 0.0 to 1.0. Effective when target format is JPEG.
+   */
   quality?: number;
 };
 
 export type BrightnessOptions = {
   brightness: number;
+  /**
+   * 0.0 to 1.0. Effective when the source image is JPEG.
+   */
   quality?: number;
 };
 

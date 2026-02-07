@@ -10,7 +10,8 @@ Demo: https://2yh02.github.io/img-toolkit
 - [Installation](#installation)
 - [Usage](#usage)
 - [Functions](#functions)
-- [ResizeOptions](#ResizeOptions)
+- [Options](#options)
+- [Quality Behavior](#quality-behavior)
 - [Vite Setup for WASM](#vite-setup-for-wasm)
 - [License](#license)
 - [Author](#author)
@@ -120,6 +121,12 @@ adjustBrightness(file: File, options: BrightnessOptions): Promise<File>
 | ------------ | ------ | --------------------------------------------------- |
 | `brightness` | number | 0.0 to 1.0                                          |
 | `quality`    | number | (Optional) 0.0 to 1.0. Effective if source is JPEG. |
+
+## Quality Behavior
+
+- `jpg` output: `quality` is applied.
+- `png` output: `quality` is not applied (lossless PNG encoding).
+- `webp` output: currently encoded as lossless WebP, so `quality` is not applied.
 
 ## Vite Setup for WASM
 
