@@ -24,10 +24,16 @@ All notable changes to this project will be documented in this file.
 - Example UI redesigned with a modern glass theme.
 - Package exports clarified as ESM (`type: module`, removed invalid `require` target).
 - Type and README docs now explicitly describe `quality` behavior by format.
+- WebP `quality` is now applied by default via the browser's native lossy WebP encoder path.
+- Removed `webpLossless` option from the public API and example UI.
 
 ### Fixed
 - Removed JPEG re-encode path when output format is PNG/WebP to avoid unnecessary quality loss and alpha-channel issues.
 - Normalized wasm output to a BlobPart-safe `Uint8Array` before constructing `File`.
+
+### Performance
+- Reduced PNG encoder compression level from `Best` to `Default` for faster encode times.
+- Example playground now offloads image processing to a Web Worker to reduce UI blocking.
 
 ### Deprecated
 - `resizeImage(file, options)` is deprecated in 2.x.
