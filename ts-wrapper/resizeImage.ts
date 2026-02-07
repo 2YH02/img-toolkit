@@ -48,6 +48,7 @@ export type BrightnessOptions = {
 export type ResizeOptions = ProcessImageOptions;
 
 let hasWarnedDeprecatedResizeImage = false;
+let hasWarnedWebpLossyFallback = false;
 
 export async function processImage(
   file: File,
@@ -113,8 +114,18 @@ async function processWithWasm(
 ): Promise<File> {
   await init();
 
-  const useWebpLossy = options.format === "webp";
+  const canEncodeWebpLossy =
+    typeof createImageBitmap === "function" &&
+    (typeof OffscreenCanvas !== "undefined" || typeof document !== "undefined");
+  const useWebpLossy = options.format === "webp" && canEncodeWebpLossy;
   const wasmFormat = useWebpLossy ? "png" : options.format;
+
+  if (options.format === "webp" && !canEncodeWebpLossy && !hasWarnedWebpLossyFallback) {
+    hasWarnedWebpLossyFallback = true;
+    console.warn(
+      "[img-toolkit] Browser WebP lossy APIs are unavailable; falling back to wasm WebP (lossless). quality may be ignored."
+    );
+  }
 
   const sanitizedOptions = {
     ...options,
