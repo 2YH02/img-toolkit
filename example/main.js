@@ -1,10 +1,3 @@
-import {
-  adjustBrightness,
-  convertFormat,
-  processImage,
-  resize,
-} from "../dist/resizeImage.js";
-
 const fileInput = document.getElementById("image-input");
 const convertBtn = document.getElementById("convert-button");
 const previewImg = document.getElementById("image-preview");
@@ -33,6 +26,26 @@ const resampleWrap = document.getElementById("resample-wrap");
 
 let selectedFile = null;
 let objectUrl = null;
+let reqId = 0;
+const worker = new Worker(new URL("./imageWorker.js", import.meta.url), {
+  type: "module",
+});
+const pending = new Map();
+
+worker.onmessage = (event) => {
+  const { id, ok, output, error } = event.data;
+  const resolver = pending.get(id);
+  if (!resolver) return;
+  pending.delete(id);
+  if (ok) {
+    resolver.resolve(output);
+  } else {
+    resolver.reject(new Error(error));
+  }
+};
+worker.onerror = (event) => {
+  console.error("Worker error:", event.message);
+};
 
 fileInput.addEventListener("change", (e) => {
   const imageName = document.getElementById("image-name");
@@ -56,7 +69,7 @@ convertBtn.addEventListener("click", async () => {
 
   try {
     const mode = operationInput.value;
-    const output = await runOperation(mode, selectedFile);
+    const output = await runOperationInWorker(mode, selectedFile);
     const size = formatBytes(output.size);
     const ext = extensionFromFile(output);
 
@@ -119,7 +132,7 @@ function syncQualityHelp() {
     : "quality has effect for JPEG/WebP output, or JPEG source in resize/brightness mode.";
 }
 
-async function runOperation(mode, file) {
+async function runOperationInWorker(mode, file) {
   const format = formatSelect.value;
   const quality = asNumber(qualityInput.value);
   const brightness = asNumber(brightnessInput.value);
@@ -127,37 +140,41 @@ async function runOperation(mode, file) {
   const height = positiveOrUndefined(heightInput.value);
   const resampling = asNumber(resampleInput.value);
 
+  let options;
   if (mode === "process") {
-    return processImage(file, {
+    options = {
       width,
       height,
       quality,
       format,
       brightness,
       resampling,
-    });
-  }
-
-  if (mode === "resize") {
-    return resize(file, {
+    };
+  } else if (mode === "resize") {
+    options = {
       width,
       height,
       quality,
       resampling,
-    });
-  }
-
-  if (mode === "convert") {
-    return convertFormat(file, {
+    };
+  } else if (mode === "convert") {
+    options = {
       format,
       quality,
-    });
+    };
+  } else {
+    options = {
+      brightness,
+      quality,
+    };
   }
 
-  return adjustBrightness(file, {
-    brightness,
-    quality,
+  const id = ++reqId;
+  const result = new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
   });
+  worker.postMessage({ id, mode, file, options });
+  return result;
 }
 
 function extensionFromFile(file) {
