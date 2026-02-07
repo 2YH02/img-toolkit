@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
+use web_sys::console;
 
 use image::codecs::webp::WebPEncoder;
 use image::{
@@ -148,7 +149,10 @@ fn encode_as_webp(
     let encoder = WebPEncoder::new_lossless(buffer);
     encoder
         .encode(&rgba, width, height, ExtendedColorType::Rgba8)
-        .map_err(|e| JsValue::from_str(&format!("WebP encode failed: {}", e)))
+        .map_err(|e| {
+            console::error_1(&JsValue::from_str(&format!("WebP encode failed: {}", e)));
+            JsValue::from_str("Image encoding failed")
+        })
 }
 
 fn map_brightness(x: f32) -> i32 {

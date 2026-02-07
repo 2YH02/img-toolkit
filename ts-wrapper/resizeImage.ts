@@ -142,45 +142,60 @@ async function encodeWebpLossyInBrowser(
   input: Uint8Array<ArrayBuffer>,
   quality: number
 ): Promise<Uint8Array> {
-  if (typeof createImageBitmap !== "function") {
-    throw new Error("Lossy WebP encoding requires browser image APIs.");
-  }
-
-  const blob = new Blob([toArrayBuffer(normalizeBytes(input))], { type: "image/png" });
-  const bitmap = await createImageBitmap(blob);
   try {
-    if (typeof OffscreenCanvas !== "undefined") {
-      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    if (typeof createImageBitmap !== "function") {
+      logInternalError("WebP lossy path requires createImageBitmap.");
+      throw new Error("Image processing failed.");
+    }
+
+    const blob = new Blob([toArrayBuffer(normalizeBytes(input))], {
+      type: "image/png",
+    });
+    const bitmap = await createImageBitmap(blob);
+    try {
+      if (typeof OffscreenCanvas !== "undefined") {
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          logInternalError("Failed to create OffscreenCanvas 2d context.");
+          throw new Error("Image processing failed.");
+        }
+        ctx.drawImage(bitmap, 0, 0);
+        const webpBlob = await canvas.convertToBlob({
+          type: "image/webp",
+          quality,
+        });
+        return blobToUint8Array(webpBlob);
+      }
+
+      if (typeof document === "undefined") {
+        logInternalError("Canvas API unavailable in this runtime.");
+        throw new Error("Image processing failed.");
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Failed to create OffscreenCanvas context.");
+      if (!ctx) {
+        logInternalError("Failed to create HTMLCanvasElement 2d context.");
+        throw new Error("Image processing failed.");
+      }
       ctx.drawImage(bitmap, 0, 0);
-      const webpBlob = await canvas.convertToBlob({
-        type: "image/webp",
-        quality,
+      const webpBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("WebP blob encoding failed."))),
+          "image/webp",
+          quality
+        );
       });
       return blobToUint8Array(webpBlob);
+    } finally {
+      bitmap.close();
     }
-
-    if (typeof document === "undefined") {
-      throw new Error("Lossy WebP encoding requires browser canvas support.");
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Failed to create canvas context.");
-    ctx.drawImage(bitmap, 0, 0);
-    const webpBlob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error("Failed to encode WebP blob."))),
-        "image/webp",
-        quality
-      );
-    });
-    return blobToUint8Array(webpBlob);
-  } finally {
-    bitmap.close();
+  } catch (error) {
+    logInternalError("WebP lossy encoding failed.", error);
+    throw new Error("Image processing failed.");
   }
 }
 
@@ -196,6 +211,14 @@ function normalizeBytes(input: Uint8Array): Uint8Array<ArrayBuffer> {
 function toArrayBuffer(input: Uint8Array): ArrayBuffer {
   const normalized = normalizeBytes(input);
   return normalized.buffer;
+}
+
+function logInternalError(message: string, error?: unknown): void {
+  if (error) {
+    console.error(`[img-toolkit] ${message}`, error);
+    return;
+  }
+  console.error(`[img-toolkit] ${message}`);
 }
 
 function inferFormatFromFile(file: File): ImageFormat {
