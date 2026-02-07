@@ -108,12 +108,10 @@ fn encode_image(
                 .map_err(|e| JsValue::from_str(&format!("JPEG encode failed: {}", e)))?;
         }
         ImageFormat::Png => {
-            let recompressed = compress_to_jpeg(image, quality)?;
-            encode_as_png(&recompressed, &mut buffer)?;
+            encode_as_png(image, &mut buffer)?;
         }
         ImageFormat::WebP => {
-            let recompressed = compress_to_jpeg(image, quality)?;
-            encode_as_webp(&recompressed, &mut buffer)?;
+            encode_as_webp(image, &mut buffer)?;
         }
         _ => {
             image
@@ -123,18 +121,6 @@ fn encode_image(
     }
 
     Ok(buffer)
-}
-
-fn compress_to_jpeg(image: &DynamicImage, quality: u8) -> Result<DynamicImage, JsValue> {
-    let mut temp_jpeg = Vec::new();
-    let mut jpeg_encoder = JpegEncoder::new_with_quality(&mut temp_jpeg, quality);
-    jpeg_encoder
-        .encode_image(image)
-        .map_err(|e| JsValue::from_str(&format!("Interim JPEG encode failed: {}", e)))?;
-
-    image
-        ::load_from_memory(&temp_jpeg)
-        .map_err(|e| JsValue::from_str(&format!("JPEG decode failed: {}", e)))
 }
 
 fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> Result<(), JsValue> {
