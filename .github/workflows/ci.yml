@@ -30,6 +30,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -39,5 +45,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run TypeScript build
-        run: npm run build:ts
+      - name: Build wasm + TypeScript
+        run: npm run build
