@@ -12,6 +12,7 @@ Demo: https://2yh02.github.io/img-toolkit
 - [Functions](#functions)
 - [Options](#options)
 - [Quality Behavior](#quality-behavior)
+- [Quality Comparison](#quality-comparison)
 - [Vite Setup for WASM](#vite-setup-for-wasm)
 - [License](#license)
 - [Author](#author)
@@ -127,6 +128,28 @@ adjustBrightness(file: File, options: BrightnessOptions): Promise<File>
 - `jpg` output: `quality` is applied.
 - `png` output: `quality` is not applied (lossless PNG encoding).
 - `webp` output: `quality` is applied through the browser's native lossy WebP encoder.
+
+## Quality Comparison
+
+Below is a simple visual/file-size comparison using the same source image.
+
+| Variant | Size |
+| --- | --- |
+| Original | 747 KB |
+| JavaScript Canvas API output | 49.3 KB |
+| Rust/WASM output (`img-toolkit`) | 41.3 KB |
+
+### Original
+
+![Original wolf image](./docs/assets/quality/wolf.jpg)
+
+### JavaScript Canvas API output
+
+![Canvas API output](./docs/assets/quality/wolf.js.jpg)
+
+### Rust/WASM output
+
+![Rust WASM output](./docs/assets/quality/wolf.rust.jpg)
 
 ## Vite Setup for WASM
 
