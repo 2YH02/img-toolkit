@@ -1,8 +1,16 @@
 {
   "name": "img-toolkit",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/2YH02/img-toolkit.git"
+  },
+  "homepage": "https://github.com/2YH02/img-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/2YH02/img-toolkit/issues"
+  },
   "main": "dist/resizeImage.js",
   "types": "dist/types/resizeImage.d.ts",
   "module": "dist/resizeImage.js",

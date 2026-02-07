@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2026-02-08
+
+### Fixed
+- Added package metadata (`repository`, `homepage`, `bugs`) in `package.json` to satisfy npm provenance validation during GitHub Actions publish.
+- Hardened worker-based example flow to reject and clear pending requests when worker initialization/message errors occur, and added request timeout handling to prevent indefinite hangs.
+- Added graceful WebP fallback in TypeScript wrapper: when browser lossy WebP APIs are unavailable, processing falls back to wasm WebP (lossless) instead of hard-failing.
+- Restricted exposed user-facing errors to generic messages while keeping detailed diagnostics in internal logs.
+
+### Docs
+- Added image quality comparison section in README and moved comparison assets under `docs/assets/quality`.
+
 ## [2.1.0] - 2026-02-07
 
 ### Added
