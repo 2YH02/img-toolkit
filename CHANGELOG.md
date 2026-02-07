@@ -1,0 +1,35 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [2.1.0] - 2026-02-07
+
+### Added
+- Modular API in TypeScript wrapper:
+  - `processImage(file, options)`
+  - `resize(file, options)`
+  - `convertFormat(file, options)`
+  - `adjustBrightness(file, options)`
+- Rust unit tests for:
+  - brightness mapping
+  - resampling filter mapping
+  - format parsing
+  - aspect ratio helper calculations
+- CI workflow (`.github/workflows/ci.yml`) to run:
+  - `cargo test`
+  - `npm run build:ts`
+
+### Changed
+- Example playground updated for modular 2.1.0 APIs.
+- Example UI redesigned with a modern glass theme.
+- Package exports clarified as ESM (`type: module`, removed invalid `require` target).
+- Type and README docs now explicitly describe `quality` behavior by format.
+
+### Fixed
+- Removed JPEG re-encode path when output format is PNG/WebP to avoid unnecessary quality loss and alpha-channel issues.
+- Normalized wasm output to a BlobPart-safe `Uint8Array` before constructing `File`.
+
+### Deprecated
+- `resizeImage(file, options)` is deprecated in 2.x.
+  Use `processImage`, `resize`, `convertFormat`, or `adjustBrightness`.
+  Planned removal: `3.0.0`.
