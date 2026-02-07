@@ -93,6 +93,20 @@ h1 {
   transform: translateY(0);
 }
 
+#status-text {
+  color: #1d7a46;
+  font-weight: 600;
+}
+
+#error-text {
+  color: #cc3344;
+  font-weight: 600;
+}
+
+#quality-help {
+  color: #6c757d;
+}
+
 .divider {
   border-top: 1px solid #cacaca;
   width: 100%;
@@ -213,6 +227,7 @@ h1 {
 .option-container {
   display: flex;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .image-preview-wrap {
