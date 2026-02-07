@@ -11,8 +11,6 @@ use image::{
     ImageFormat,
     ExtendedColorType,
     ImageEncoder,
-    RgbImage,
-    RgbaImage,
 };
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::{ CompressionType, PngEncoder };
@@ -27,8 +25,6 @@ struct ResizeOptions {
     height: Option<u32>,
     quality: Option<f32>,
     format: String,
-    #[serde(rename = "webpLossless", default = "default_webp_lossless")]
-    webp_lossless: bool,
     brightness: f32,
     resampling: u32,
 }
@@ -115,7 +111,7 @@ fn encode_image(
             encode_as_png(image, &mut buffer)?;
         }
         ImageFormat::WebP => {
-            encode_as_webp(image, &mut buffer, quality, options.webp_lossless)?;
+            encode_as_webp(image, &mut buffer)?;
         }
         _ => {
             image
@@ -144,70 +140,14 @@ fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> Result<(), JsVal
 
 fn encode_as_webp(
     image: &DynamicImage,
-    buffer: &mut Vec<u8>,
-    quality: u8,
-    lossless: bool
+    buffer: &mut Vec<u8>
 ) -> Result<(), JsValue> {
-    if lossless {
-        return encode_as_webp_lossless(image, buffer);
-    }
-
-    encode_as_webp_lossy_approx(image, buffer, quality)
-}
-
-fn encode_as_webp_lossless(image: &DynamicImage, buffer: &mut Vec<u8>) -> Result<(), JsValue> {
     let rgba = image.to_rgba8();
     let (width, height) = rgba.dimensions();
 
     let encoder = WebPEncoder::new_lossless(buffer);
     encoder
         .encode(&rgba, width, height, ExtendedColorType::Rgba8)
-        .map_err(|e| JsValue::from_str(&format!("WebP encode failed: {}", e)))
-}
-
-fn encode_as_webp_lossy_approx(
-    image: &DynamicImage,
-    buffer: &mut Vec<u8>,
-    quality: u8
-) -> Result<(), JsValue> {
-    let rgba = image.to_rgba8();
-    let (width, height) = rgba.dimensions();
-
-    let mut rgb_data = Vec::with_capacity((width as usize) * (height as usize) * 3);
-    let mut alpha_data = Vec::with_capacity((width as usize) * (height as usize));
-
-    for px in rgba.pixels() {
-        rgb_data.extend_from_slice(&[px[0], px[1], px[2]]);
-        alpha_data.push(px[3]);
-    }
-
-    let rgb_image = RgbImage::from_raw(width, height, rgb_data).ok_or_else(||
-        JsValue::from_str("Failed to build RGB image for WebP lossy path")
-    )?;
-
-    let mut temp_jpeg = Vec::new();
-    let mut jpeg_encoder = JpegEncoder::new_with_quality(&mut temp_jpeg, quality);
-    jpeg_encoder
-        .encode_image(&DynamicImage::ImageRgb8(rgb_image))
-        .map_err(|e| JsValue::from_str(&format!("Interim JPEG encode failed: {}", e)))?;
-
-    let degraded_rgb = image
-        ::load_from_memory(&temp_jpeg)
-        .map_err(|e| JsValue::from_str(&format!("Interim JPEG decode failed: {}", e)))?
-        .to_rgb8();
-
-    let mut combined = Vec::with_capacity((width as usize) * (height as usize) * 4);
-    for (idx, px) in degraded_rgb.pixels().enumerate() {
-        combined.extend_from_slice(&[px[0], px[1], px[2], alpha_data[idx]]);
-    }
-
-    let rgba_image = RgbaImage::from_raw(width, height, combined).ok_or_else(||
-        JsValue::from_str("Failed to rebuild RGBA image for WebP lossy path")
-    )?;
-
-    let encoder = WebPEncoder::new_lossless(buffer);
-    encoder
-        .encode(&rgba_image, width, height, ExtendedColorType::Rgba8)
         .map_err(|e| JsValue::from_str(&format!("WebP encode failed: {}", e)))
 }
 
@@ -223,10 +163,6 @@ fn scaled_height_for_width(width: u32, orig_w: u32, orig_h: u32) -> u32 {
 
 fn scaled_width_for_height(height: u32, orig_w: u32, orig_h: u32) -> u32 {
     (((height as f32) * (orig_w as f32)) / (orig_h as f32)).round() as u32
-}
-
-fn default_webp_lossless() -> bool {
-    true
 }
 
 #[cfg(test)]

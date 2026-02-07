@@ -7,12 +7,10 @@ export type ProcessImageOptions = {
   height?: number;
   /**
    * 0.0 to 1.0.
-   * Effective for JPEG output.
-   * For WebP, this is used when `webpLossless` is `false`.
+   * Effective for JPEG and WebP output.
    */
   quality?: number;
   format: ImageFormat;
-  webpLossless?: boolean;
   brightness?: number;
   resampling?: number;
 };
@@ -31,11 +29,9 @@ export type ConvertFormatOptions = {
   format: ImageFormat;
   /**
    * 0.0 to 1.0.
-   * Effective for JPEG target.
-   * For WebP target, this is used when `webpLossless` is `false`.
+   * Effective for JPEG and WebP target.
    */
   quality?: number;
-  webpLossless?: boolean;
 };
 
 export type BrightnessOptions = {
@@ -80,7 +76,6 @@ export async function convertFormat(
   return processWithWasm(file, {
     format: options.format,
     quality: options.quality,
-    webpLossless: options.webpLossless,
   });
 }
 
@@ -100,7 +95,7 @@ export async function adjustBrightness(
  */
 export async function resizeImage(
   file: File,
-  options: ResizeOptions
+  options: ProcessImageOptions
 ): Promise<File> {
   if (!hasWarnedDeprecatedResizeImage) {
     hasWarnedDeprecatedResizeImage = true;
@@ -118,10 +113,13 @@ async function processWithWasm(
 ): Promise<File> {
   await init();
 
+  const useWebpLossy = options.format === "webp";
+  const wasmFormat = useWebpLossy ? "png" : options.format;
+
   const sanitizedOptions = {
     ...options,
+    format: wasmFormat,
     quality: clamp(options.quality ?? 0.7, 0, 1),
-    webpLossless: options.webpLossless ?? true,
     brightness: clamp(options.brightness ?? 0.5, 0, 1),
     resampling: clamp(options.resampling ?? 4, 0, 10),
   };
@@ -130,11 +128,74 @@ async function processWithWasm(
   const uint8 = new Uint8Array(buffer);
 
   const result = resize_image(uint8, sanitizedOptions);
-  const output = new Uint8Array(result);
-  const mime =
-    options.format === "jpg" ? "image/jpeg" : `image/${options.format}`;
+  const output = useWebpLossy
+    ? await encodeWebpLossyInBrowser(normalizeBytes(result), sanitizedOptions.quality)
+    : normalizeBytes(result);
+  const mime = options.format === "jpg" ? "image/jpeg" : `image/${options.format}`;
 
-  return new File([output], `resized.${options.format}`, { type: mime });
+  return new File([toArrayBuffer(output)], `resized.${options.format}`, {
+    type: mime,
+  });
+}
+
+async function encodeWebpLossyInBrowser(
+  input: Uint8Array<ArrayBuffer>,
+  quality: number
+): Promise<Uint8Array> {
+  if (typeof createImageBitmap !== "function") {
+    throw new Error("Lossy WebP encoding requires browser image APIs.");
+  }
+
+  const blob = new Blob([toArrayBuffer(normalizeBytes(input))], { type: "image/png" });
+  const bitmap = await createImageBitmap(blob);
+  try {
+    if (typeof OffscreenCanvas !== "undefined") {
+      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Failed to create OffscreenCanvas context.");
+      ctx.drawImage(bitmap, 0, 0);
+      const webpBlob = await canvas.convertToBlob({
+        type: "image/webp",
+        quality,
+      });
+      return blobToUint8Array(webpBlob);
+    }
+
+    if (typeof document === "undefined") {
+      throw new Error("Lossy WebP encoding requires browser canvas support.");
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Failed to create canvas context.");
+    ctx.drawImage(bitmap, 0, 0);
+    const webpBlob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("Failed to encode WebP blob."))),
+        "image/webp",
+        quality
+      );
+    });
+    return blobToUint8Array(webpBlob);
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function blobToUint8Array(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
+  const arr = await blob.arrayBuffer();
+  return new Uint8Array(arr);
+}
+
+function normalizeBytes(input: Uint8Array): Uint8Array<ArrayBuffer> {
+  return Uint8Array.from(input);
+}
+
+function toArrayBuffer(input: Uint8Array): ArrayBuffer {
+  const normalized = normalizeBytes(input);
+  return normalized.buffer;
 }
 
 function inferFormatFromFile(file: File): ImageFormat {
