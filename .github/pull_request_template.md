@@ -2,14 +2,6 @@
 - What changed?
 - Why was this change needed?
 
-## Scope
-- [ ] Feature
-- [ ] Fix
-- [ ] Refactor
-- [ ] Docs
-- [ ] CI/CD
-- [ ] Release
-
 ## Key Changes
 - 
 - 
