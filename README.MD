@@ -48,6 +48,11 @@ import {
 const resized = await resize(file, { width: 800, resampling: 4 });
 const brighter = await adjustBrightness(file, { brightness: 0.6 });
 const converted = await convertFormat(file, { format: "webp", quality: 0.8 });
+const convertedLossyWebp = await convertFormat(file, {
+  format: "webp",
+  webpLossless: false,
+  quality: 0.75,
+});
 
 const processed = await processImage(file, {
   width: 800,
@@ -96,6 +101,7 @@ adjustBrightness(file: File, options: BrightnessOptions): Promise<File>
 | `height`     | number | (Optional) Target height in pixels. If omitted, height is auto-adjusted.                         |
 | `quality`    | number | (Optional) 0.0 to 1.0. Effective for JPEG output.                                                 |
 | `format`     | string | Output format (`"jpg"`, `"png"`, `"webp"`).                                                      |
+| `webpLossless` | boolean | (Optional) WebP encoding mode. `true` by default. Set `false` to apply `quality` to WebP.   |
 | `brightness` | number | (Optional) 0.0 to 1.0. Defaults to 0.5.                                                           |
 | `resampling` | number | (Optional) 0 to 10. Defaults to 4.                                                                |
 
@@ -113,7 +119,8 @@ adjustBrightness(file: File, options: BrightnessOptions): Promise<File>
 | Option    | Type   | Description                                            |
 | --------- | ------ | ------------------------------------------------------ |
 | `format`  | string | Output format (`"jpg"`, `"png"`, `"webp"`).           |
-| `quality` | number | (Optional) 0.0 to 1.0. Effective for JPEG output.      |
+| `quality` | number | (Optional) 0.0 to 1.0. Effective for JPEG output and lossy WebP. |
+| `webpLossless` | boolean | (Optional) `true` by default. Set `false` to use lossy WebP path. |
 
 ### `BrightnessOptions`
 
@@ -126,7 +133,8 @@ adjustBrightness(file: File, options: BrightnessOptions): Promise<File>
 
 - `jpg` output: `quality` is applied.
 - `png` output: `quality` is not applied (lossless PNG encoding).
-- `webp` output: currently encoded as lossless WebP, so `quality` is not applied.
+- `webp` output: `webpLossless=true` (default) ignores `quality`.
+- `webp` output: `webpLossless=false` applies `quality` via lossy preprocessing before WebP encoding.
 
 ## Vite Setup for WASM
 

@@ -24,6 +24,8 @@ const widthInput = document.getElementById("width-input");
 const heightInput = document.getElementById("height-input");
 const resampleInput = document.getElementById("resample-input");
 const formatSelect = document.getElementById("format-input");
+const webpLosslessInput = document.getElementById("webp-lossless-input");
+const webpLosslessRow = document.getElementById("webp-lossless-row");
 const formatRow = document.getElementById("format-row");
 const qualityWrap = document.getElementById("quality-wrap");
 const brightnessWrap = document.getElementById("brightness-wrap");
@@ -50,6 +52,8 @@ fileInput.addEventListener("change", (e) => {
 
 operationInput.addEventListener("change", syncUiByMode);
 formatSelect.addEventListener("change", syncQualityHelp);
+formatSelect.addEventListener("change", syncWebpLosslessVisibility);
+webpLosslessInput.addEventListener("change", syncQualityHelp);
 
 convertBtn.addEventListener("click", async () => {
   if (!selectedFile) return;
@@ -88,6 +92,7 @@ function syncUiByMode() {
   setVisible(resampleWrap, mode === "process" || mode === "resize");
   setVisible(brightnessWrap, mode === "process" || mode === "brightness");
   setVisible(qualityWrap, true);
+  syncWebpLosslessVisibility();
 
   if (mode === "process") {
     modeHelp.textContent = "processImage: resize + convert + brightness in one call.";
@@ -106,20 +111,30 @@ function syncQualityHelp() {
   const mode = operationInput.value;
   const target = formatSelect.value;
   const source = selectedFile?.type?.toLowerCase() || "";
+  const webpLossless = webpLosslessInput.value === "true";
 
   const qualityEffective =
-    (mode === "process" || mode === "convert") && target === "jpg"
+    (mode === "process" || mode === "convert") &&
+    (target === "jpg" || (target === "webp" && !webpLossless))
       ? true
       : (mode === "resize" || mode === "brightness") &&
         source.includes("jpeg");
 
   qualityHelp.textContent = qualityEffective
     ? "quality is currently effective."
-    : "quality has effect for JPEG output (or JPEG source in resize/brightness mode).";
+    : "quality has effect for JPEG output, lossy WebP, or JPEG source in resize/brightness mode.";
+}
+
+function syncWebpLosslessVisibility() {
+  const mode = operationInput.value;
+  const target = formatSelect.value;
+  const show = (mode === "process" || mode === "convert") && target === "webp";
+  setVisible(webpLosslessRow, show);
 }
 
 async function runOperation(mode, file) {
   const format = formatSelect.value;
+  const webpLossless = webpLosslessInput.value === "true";
   const quality = asNumber(qualityInput.value);
   const brightness = asNumber(brightnessInput.value);
   const width = positiveOrUndefined(widthInput.value);
@@ -132,6 +147,7 @@ async function runOperation(mode, file) {
       height,
       quality,
       format,
+      webpLossless,
       brightness,
       resampling,
     });
@@ -150,6 +166,7 @@ async function runOperation(mode, file) {
     return convertFormat(file, {
       format,
       quality,
+      webpLossless,
     });
   }
 
@@ -166,7 +183,14 @@ function extensionFromFile(file) {
 }
 
 function setVisible(element, visible) {
-  element.style.display = visible ? "flex" : "none";
+  if (!visible) {
+    element.style.display = "none";
+    return;
+  }
+
+  element.style.display = element.classList.contains("option-container")
+    ? "grid"
+    : "flex";
 }
 
 function asNumber(value) {

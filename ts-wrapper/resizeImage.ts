@@ -6,11 +6,13 @@ export type ProcessImageOptions = {
   width?: number;
   height?: number;
   /**
-   * 0.0 to 1.0. Currently effective for JPEG output only.
-   * PNG and WebP are encoded in lossless mode in the current implementation.
+   * 0.0 to 1.0.
+   * Effective for JPEG output.
+   * For WebP, this is used when `webpLossless` is `false`.
    */
   quality?: number;
   format: ImageFormat;
+  webpLossless?: boolean;
   brightness?: number;
   resampling?: number;
 };
@@ -28,9 +30,12 @@ export type ResizeOnlyOptions = {
 export type ConvertFormatOptions = {
   format: ImageFormat;
   /**
-   * 0.0 to 1.0. Effective when target format is JPEG.
+   * 0.0 to 1.0.
+   * Effective for JPEG target.
+   * For WebP target, this is used when `webpLossless` is `false`.
    */
   quality?: number;
+  webpLossless?: boolean;
 };
 
 export type BrightnessOptions = {
@@ -75,6 +80,7 @@ export async function convertFormat(
   return processWithWasm(file, {
     format: options.format,
     quality: options.quality,
+    webpLossless: options.webpLossless,
   });
 }
 
@@ -115,6 +121,7 @@ async function processWithWasm(
   const sanitizedOptions = {
     ...options,
     quality: clamp(options.quality ?? 0.7, 0, 1),
+    webpLossless: options.webpLossless ?? true,
     brightness: clamp(options.brightness ?? 0.5, 0, 1),
     resampling: clamp(options.resampling ?? 4, 0, 10),
   };
