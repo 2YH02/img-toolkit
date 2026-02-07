@@ -129,7 +129,7 @@ fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> Result<(), JsVal
 
     let encoder = PngEncoder::new_with_quality(
         buffer,
-        CompressionType::Best,
+        CompressionType::Default,
         image::codecs::png::FilterType::Adaptive
     );
 
