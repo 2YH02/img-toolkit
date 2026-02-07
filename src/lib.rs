@@ -56,11 +56,11 @@ pub fn resize_image(data: &[u8], options: JsValue) -> Result<Box<[u8]>, JsValue>
             DynamicImage::ImageRgba8(buf)
         }
         (Some(w), None) => {
-            let h = (((w as f32) * (orig_h as f32)) / (orig_w as f32)).round() as u32;
+            let h = scaled_height_for_width(w, orig_w, orig_h);
             img.resize(w, h, filter)
         }
         (None, Some(h)) => {
-            let w = (((h as f32) * (orig_w as f32)) / (orig_h as f32)).round() as u32;
+            let w = scaled_width_for_height(h, orig_w, orig_h);
             img.resize(w, h, filter)
         }
         (None, None) => img,
@@ -152,4 +152,55 @@ fn map_brightness(x: f32) -> i32 {
     let x = x.clamp(0.0, 1.0);
     let v = x * 510.0 - 255.0;
     v.round() as i32
+}
+
+fn scaled_height_for_width(width: u32, orig_w: u32, orig_h: u32) -> u32 {
+    (((width as f32) * (orig_h as f32)) / (orig_w as f32)).round() as u32
+}
+
+fn scaled_width_for_height(height: u32, orig_w: u32, orig_h: u32) -> u32 {
+    (((height as f32) * (orig_w as f32)) / (orig_h as f32)).round() as u32
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn map_brightness_clamps_range() {
+        assert_eq!(map_brightness(-1.0), -255);
+        assert_eq!(map_brightness(0.0), -255);
+        assert_eq!(map_brightness(1.0), 255);
+        assert_eq!(map_brightness(2.0), 255);
+    }
+
+    #[test]
+    fn map_brightness_midpoint_is_zero() {
+        assert_eq!(map_brightness(0.5), 0);
+    }
+
+    #[test]
+    fn filter_type_mapping_is_stable() {
+        assert_eq!(get_filter_type(0), FilterType::Nearest);
+        assert_eq!(get_filter_type(3), FilterType::Triangle);
+        assert_eq!(get_filter_type(5), FilterType::CatmullRom);
+        assert_eq!(get_filter_type(7), FilterType::Gaussian);
+        assert_eq!(get_filter_type(10), FilterType::Lanczos3);
+        assert_eq!(get_filter_type(99), FilterType::Lanczos3);
+    }
+
+    #[test]
+    fn parse_format_supports_expected_aliases() {
+        assert_eq!(parse_format("png"), Some(ImageFormat::Png));
+        assert_eq!(parse_format("jpg"), Some(ImageFormat::Jpeg));
+        assert_eq!(parse_format("jpeg"), Some(ImageFormat::Jpeg));
+        assert_eq!(parse_format("webp"), Some(ImageFormat::WebP));
+        assert_eq!(parse_format("gif"), None);
+    }
+
+    #[test]
+    fn aspect_ratio_helpers_round_as_expected() {
+        assert_eq!(scaled_height_for_width(400, 1200, 800), 267);
+        assert_eq!(scaled_width_for_height(267, 1200, 800), 401);
+    }
 }
