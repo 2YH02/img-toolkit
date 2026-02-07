@@ -110,10 +110,11 @@ async function processWithWasm(
   const uint8 = new Uint8Array(buffer);
 
   const result = resize_image(uint8, sanitizedOptions);
+  const output = new Uint8Array(result);
   const mime =
     options.format === "jpg" ? "image/jpeg" : `image/${options.format}`;
 
-  return new File([result], `resized.${options.format}`, { type: mime });
+  return new File([output], `resized.${options.format}`, { type: mime });
 }
 
 function inferFormatFromFile(file: File): ImageFormat {
