@@ -27,6 +27,7 @@ const resampleWrap = document.getElementById("resample-wrap");
 let selectedFile = null;
 let objectUrl = null;
 let reqId = 0;
+const WORKER_RESPONSE_TIMEOUT_MS = 15000;
 const worker = new Worker(new URL("./imageWorker.js", import.meta.url), {
   type: "module",
 });
@@ -37,6 +38,7 @@ worker.onmessage = (event) => {
   const resolver = pending.get(id);
   if (!resolver) return;
   pending.delete(id);
+  clearTimeout(resolver.timeoutId);
   if (ok) {
     resolver.resolve(output);
   } else {
@@ -45,6 +47,10 @@ worker.onmessage = (event) => {
 };
 worker.onerror = (event) => {
   console.error("Worker error:", event.message);
+  rejectAllPending(new Error("Worker failed to initialize."));
+};
+worker.onmessageerror = () => {
+  rejectAllPending(new Error("Worker response parsing failed."));
 };
 
 fileInput.addEventListener("change", (e) => {
@@ -171,10 +177,31 @@ async function runOperationInWorker(mode, file) {
 
   const id = ++reqId;
   const result = new Promise((resolve, reject) => {
-    pending.set(id, { resolve, reject });
+    const timeoutId = setTimeout(() => {
+      pending.delete(id);
+      reject(new Error("Worker response timed out."));
+    }, WORKER_RESPONSE_TIMEOUT_MS);
+    pending.set(id, { resolve, reject, timeoutId });
   });
-  worker.postMessage({ id, mode, file, options });
+  try {
+    worker.postMessage({ id, mode, file, options });
+  } catch (error) {
+    const resolver = pending.get(id);
+    if (resolver) {
+      clearTimeout(resolver.timeoutId);
+      pending.delete(id);
+      resolver.reject(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
   return result;
+}
+
+function rejectAllPending(error) {
+  for (const [id, resolver] of pending.entries()) {
+    clearTimeout(resolver.timeoutId);
+    resolver.reject(error);
+    pending.delete(id);
+  }
 }
 
 function extensionFromFile(file) {
