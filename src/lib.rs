@@ -19,6 +19,40 @@ use std::io::Cursor;
 use serde::Deserialize;
 use serde_wasm_bindgen::from_value;
 
+type ToolkitResult<T> = Result<T, ToolkitError>;
+
+enum ToolkitError {
+    InvalidOptions(String),
+    FormatGuessFailed(String),
+    DecodeFailed(String),
+    UnsupportedFormat,
+    JpegEncodeFailed(String),
+    PngEncodeFailed(String),
+    WebpEncodeFailed,
+    WriteFailed(String),
+}
+
+impl From<ToolkitError> for JsValue {
+    fn from(error: ToolkitError) -> Self {
+        match error {
+            ToolkitError::InvalidOptions(e) => JsValue::from_str(&format!("Invalid options: {}", e)),
+            ToolkitError::FormatGuessFailed(e) => {
+                JsValue::from_str(&format!("Format guess failed: {}", e))
+            }
+            ToolkitError::DecodeFailed(e) => JsValue::from_str(&format!("Decode failed: {}", e)),
+            ToolkitError::UnsupportedFormat => JsValue::from_str("Unsupported format"),
+            ToolkitError::JpegEncodeFailed(e) => {
+                JsValue::from_str(&format!("JPEG encode failed: {}", e))
+            }
+            ToolkitError::PngEncodeFailed(e) => {
+                JsValue::from_str(&format!("PNG encode failed: {}", e))
+            }
+            ToolkitError::WebpEncodeFailed => JsValue::from_str("Image encoding failed"),
+            ToolkitError::WriteFailed(e) => JsValue::from_str(&format!("Write failed: {}", e)),
+        }
+    }
+}
+
 #[derive(Deserialize)]
 struct ResizeOptions {
     width: Option<u32>,
@@ -31,17 +65,21 @@ struct ResizeOptions {
 
 #[wasm_bindgen]
 pub fn resize_image(data: &[u8], options: JsValue) -> Result<Box<[u8]>, JsValue> {
+    resize_image_impl(data, options).map_err(JsValue::from)
+}
+
+fn resize_image_impl(data: &[u8], options: JsValue) -> ToolkitResult<Box<[u8]>> {
     let options: ResizeOptions = from_value(options).map_err(|e|
-        JsValue::from_str(&format!("Invalid options: {}", e))
+        ToolkitError::InvalidOptions(e.to_string())
     )?;
 
     let value = map_brightness(options.brightness);
 
     let img = ImageReader::new(Cursor::new(data))
         .with_guessed_format()
-        .map_err(|e| JsValue::from_str(&format!("Format guess failed: {}", e)))?
+        .map_err(|e| ToolkitError::FormatGuessFailed(e.to_string()))?
         .decode()
-        .map_err(|e| JsValue::from_str(&format!("Decode failed: {}", e)))?
+        .map_err(|e| ToolkitError::DecodeFailed(e.to_string()))?
         .brighten(value);
 
     let (orig_w, orig_h) = img.dimensions();
@@ -63,9 +101,7 @@ pub fn resize_image(data: &[u8], options: JsValue) -> Result<Box<[u8]>, JsValue>
         (None, None) => img,
     };
 
-    let format = parse_format(&options.format).ok_or_else(||
-        JsValue::from_str("Unsupported format")
-    )?;
+    let format = parse_format(&options.format).ok_or(ToolkitError::UnsupportedFormat)?;
     let buffer = encode_image(&resized, &format, &options)?;
     Ok(buffer.into_boxed_slice())
 }
@@ -96,7 +132,7 @@ fn encode_image(
     image: &DynamicImage,
     format: &ImageFormat,
     options: &ResizeOptions
-) -> Result<Vec<u8>, JsValue> {
+) -> ToolkitResult<Vec<u8>> {
     let mut buffer = Vec::new();
     let quality = (options.quality.unwrap_or(0.7) * 100.0).round().clamp(1.0, 100.0) as u8;
 
@@ -105,7 +141,7 @@ fn encode_image(
             let mut encoder = JpegEncoder::new_with_quality(&mut buffer, quality);
             encoder
                 .encode_image(image)
-                .map_err(|e| JsValue::from_str(&format!("JPEG encode failed: {}", e)))?;
+                .map_err(|e| ToolkitError::JpegEncodeFailed(e.to_string()))?;
         }
         ImageFormat::Png => {
             encode_as_png(image, &mut buffer)?;
@@ -116,14 +152,14 @@ fn encode_image(
         _ => {
             image
                 .write_to(&mut Cursor::new(&mut buffer), *format)
-                .map_err(|e| JsValue::from_str(&format!("Write failed: {}", e)))?;
+                .map_err(|e| ToolkitError::WriteFailed(e.to_string()))?;
         }
     }
 
     Ok(buffer)
 }
 
-fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> Result<(), JsValue> {
+fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> ToolkitResult<()> {
     let rgba = image.to_rgba8();
     let (w, h) = rgba.dimensions();
 
@@ -135,13 +171,13 @@ fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> Result<(), JsVal
 
     encoder
         .write_image(&rgba, w, h, ExtendedColorType::Rgba8)
-        .map_err(|e| JsValue::from_str(&format!("PNG encode failed: {}", e)))
+        .map_err(|e| ToolkitError::PngEncodeFailed(e.to_string()))
 }
 
 fn encode_as_webp(
     image: &DynamicImage,
     buffer: &mut Vec<u8>
-) -> Result<(), JsValue> {
+) -> ToolkitResult<()> {
     let rgba = image.to_rgba8();
     let (width, height) = rgba.dimensions();
 
@@ -150,7 +186,7 @@ fn encode_as_webp(
         .encode(&rgba, width, height, ExtendedColorType::Rgba8)
         .map_err(|e| {
             console::error_1(&JsValue::from_str(&format!("WebP encode failed: {}", e)));
-            JsValue::from_str("Image encoding failed")
+            ToolkitError::WebpEncodeFailed
         })
 }
 
