@@ -81,11 +81,14 @@ fn get_filter_type(level: u32) -> FilterType {
 }
 
 fn parse_format(fmt: &str) -> Option<ImageFormat> {
-    match fmt.to_lowercase().as_str() {
-        "png" => Some(ImageFormat::Png),
-        "jpeg" | "jpg" => Some(ImageFormat::Jpeg),
-        "webp" => Some(ImageFormat::WebP),
-        _ => None,
+    if fmt.eq_ignore_ascii_case("png") {
+        Some(ImageFormat::Png)
+    } else if fmt.eq_ignore_ascii_case("jpeg") || fmt.eq_ignore_ascii_case("jpg") {
+        Some(ImageFormat::Jpeg)
+    } else if fmt.eq_ignore_ascii_case("webp") {
+        Some(ImageFormat::WebP)
+    } else {
+        None
     }
 }
 
