@@ -95,7 +95,7 @@ fn encode_image(
     options: &ResizeOptions
 ) -> Result<Vec<u8>, JsValue> {
     let mut buffer = Vec::new();
-    let quality = (options.quality.unwrap_or(0.8) * 100.0).round().clamp(1.0, 100.0) as u8;
+    let quality = (options.quality.unwrap_or(0.7) * 100.0).round().clamp(1.0, 100.0) as u8;
 
     match format {
         ImageFormat::Jpeg => {
