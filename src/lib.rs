@@ -4,7 +4,6 @@ use web_sys::console;
 
 use image::codecs::webp::WebPEncoder;
 use image::{
-    imageops::resize,
     imageops::FilterType,
     GenericImageView,
     ImageReader,
@@ -52,10 +51,7 @@ pub fn resize_image(data: &[u8], options: JsValue) -> Result<Box<[u8]>, JsValue>
     let width = options.width.filter(|&w| w > 0);
     let height = options.height.filter(|&h| h > 0);
     let resized = match (width, height) {
-        (Some(w), Some(h)) => {
-            let buf = resize(&img.to_rgba8(), w, h, filter);
-            DynamicImage::ImageRgba8(buf)
-        }
+        (Some(w), Some(h)) => img.resize_exact(w, h, filter),
         (Some(w), None) => {
             let h = scaled_height_for_width(w, orig_w, orig_h);
             img.resize(w, h, filter)
