@@ -33,24 +33,47 @@ enum ToolkitError {
     WriteFailed(String),
 }
 
-impl From<ToolkitError> for JsValue {
-    fn from(error: ToolkitError) -> Self {
-        match error {
-            ToolkitError::InvalidOptions(e) => JsValue::from_str(&format!("Invalid options: {}", e)),
-            ToolkitError::FormatGuessFailed(e) => {
-                JsValue::from_str(&format!("Format guess failed: {}", e))
+impl ToolkitError {
+    fn user_message(&self) -> &'static str {
+        match self {
+            ToolkitError::InvalidOptions(_) => "Invalid options",
+            ToolkitError::UnsupportedFormat => "Unsupported format",
+            _ => "Image processing failed",
+        }
+    }
+
+    fn internal_log_message(&self) -> Option<String> {
+        match self {
+            ToolkitError::InvalidOptions(e) => {
+                Some(format!("[img-toolkit] Invalid options error: {}", e))
             }
-            ToolkitError::DecodeFailed(e) => JsValue::from_str(&format!("Decode failed: {}", e)),
-            ToolkitError::UnsupportedFormat => JsValue::from_str("Unsupported format"),
+            ToolkitError::FormatGuessFailed(e) => {
+                Some(format!("[img-toolkit] Format guess failed with internal error: {}", e))
+            }
+            ToolkitError::DecodeFailed(e) => {
+                Some(format!("[img-toolkit] Decode failed with internal error: {}", e))
+            }
             ToolkitError::JpegEncodeFailed(e) => {
-                JsValue::from_str(&format!("JPEG encode failed: {}", e))
+                Some(format!("[img-toolkit] JPEG encode failed with internal error: {}", e))
             }
             ToolkitError::PngEncodeFailed(e) => {
-                JsValue::from_str(&format!("PNG encode failed: {}", e))
+                Some(format!("[img-toolkit] PNG encode failed with internal error: {}", e))
             }
-            ToolkitError::WebpEncodeFailed => JsValue::from_str("Image encoding failed"),
-            ToolkitError::WriteFailed(e) => JsValue::from_str(&format!("Write failed: {}", e)),
+            ToolkitError::WriteFailed(e) => {
+                Some(format!("[img-toolkit] Image write failed with internal error: {}", e))
+            }
+            ToolkitError::UnsupportedFormat | ToolkitError::WebpEncodeFailed => None,
         }
+    }
+}
+
+impl From<ToolkitError> for JsValue {
+    fn from(error: ToolkitError) -> Self {
+        if let Some(log) = error.internal_log_message() {
+            console::error_1(&JsValue::from_str(&log));
+        }
+
+        JsValue::from_str(error.user_message())
     }
 }
 
@@ -320,5 +343,16 @@ mod tests {
 
         let err = resize_image_with_options(&input, options).unwrap_err();
         assert!(matches!(err, ToolkitError::UnsupportedFormat));
+    }
+
+    #[test]
+    fn toolkit_error_user_messages_follow_exposure_policy() {
+        assert_eq!(ToolkitError::InvalidOptions("x".to_string()).user_message(), "Invalid options");
+        assert_eq!(ToolkitError::UnsupportedFormat.user_message(), "Unsupported format");
+        assert_eq!(
+            ToolkitError::DecodeFailed("x".to_string()).user_message(),
+            "Image processing failed"
+        );
+        assert_eq!(ToolkitError::WebpEncodeFailed.user_message(), "Image processing failed");
     }
 }
