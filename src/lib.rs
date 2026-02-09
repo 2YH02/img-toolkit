@@ -211,8 +211,8 @@ fn encode_as_webp(
     let encoder = WebPEncoder::new_lossless(buffer);
     encoder
         .encode(&rgba, width, height, ExtendedColorType::Rgba8)
-        .map_err(|e| {
-            console::error_1(&JsValue::from_str(&format!("WebP encode failed: {}", e)));
+        .map_err(|_| {
+            console::error_1(&JsValue::from_str("[img-toolkit][ERR_WEBP_ENCODE] encode failed"));
             ToolkitError::WebpEncodeFailed
         })
 }
