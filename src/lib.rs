@@ -20,6 +20,7 @@ use serde::Deserialize;
 use serde_wasm_bindgen::from_value;
 
 type ToolkitResult<T> = Result<T, ToolkitError>;
+const DEFAULT_QUALITY: f32 = 0.7;
 
 #[derive(Debug)]
 enum ToolkitError {
@@ -161,7 +162,7 @@ fn encode_image(
     options: &ResizeOptions
 ) -> ToolkitResult<Vec<u8>> {
     let mut buffer = Vec::new();
-    let quality = (options.quality.unwrap_or(0.7) * 100.0).round().clamp(1.0, 100.0) as u8;
+    let quality = normalized_quality_u8(options.quality);
 
     match format {
         ImageFormat::Jpeg => {
@@ -184,6 +185,16 @@ fn encode_image(
     }
 
     Ok(buffer)
+}
+
+fn normalized_quality_u8(raw_quality: Option<f32>) -> u8 {
+    let quality_f = raw_quality.unwrap_or(DEFAULT_QUALITY);
+    let quality_f = if quality_f.is_finite() {
+        quality_f
+    } else {
+        DEFAULT_QUALITY
+    };
+    (quality_f * 100.0).round().clamp(1.0, 100.0) as u8
 }
 
 fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> ToolkitResult<()> {
@@ -354,5 +365,15 @@ mod tests {
             "Image processing failed"
         );
         assert_eq!(ToolkitError::WebpEncodeFailed.user_message(), "Image processing failed");
+    }
+
+    #[test]
+    fn quality_normalization_rejects_non_finite_values() {
+        assert_eq!(normalized_quality_u8(None), 70);
+        assert_eq!(normalized_quality_u8(Some(f32::NAN)), 70);
+        assert_eq!(normalized_quality_u8(Some(f32::INFINITY)), 70);
+        assert_eq!(normalized_quality_u8(Some(f32::NEG_INFINITY)), 70);
+        assert_eq!(normalized_quality_u8(Some(0.0)), 1);
+        assert_eq!(normalized_quality_u8(Some(1.0)), 100);
     }
 }
