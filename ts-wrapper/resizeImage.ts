@@ -130,9 +130,9 @@ async function processWithWasm(
   const sanitizedOptions = {
     ...options,
     format: wasmFormat,
-    quality: clamp(options.quality ?? 0.7, 0, 1),
-    brightness: clamp(options.brightness ?? 0.5, 0, 1),
-    resampling: clamp(options.resampling ?? 4, 0, 10),
+    quality: clamp(options.quality ?? 0.7, 0, 1, 0.7),
+    brightness: clamp(options.brightness ?? 0.5, 0, 1, 0.5),
+    resampling: clamp(options.resampling ?? 4, 0, 10, 4),
   };
 
   const buffer = await file.arrayBuffer();
@@ -239,6 +239,7 @@ function inferFormatFromFile(file: File): ImageFormat {
   return "jpg";
 }
 
-function clamp(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, max: number, fallback = min): number {
+  if (!Number.isFinite(value)) return fallback;
   return Math.min(Math.max(value, min), max);
 }
