@@ -357,6 +357,60 @@ mod tests {
     }
 
     #[test]
+    fn resize_image_without_dimensions_keeps_original_size() {
+        let input = make_test_png(120, 80);
+        let options = ResizeOptions {
+            width: None,
+            height: None,
+            quality: None,
+            format: "png".to_string(),
+            brightness: 0.5,
+            resampling: 4,
+        };
+
+        let output = resize_image_with_options(&input, options).unwrap();
+        let (format, decoded) = decode_image(&output);
+
+        assert_eq!(format, ImageFormat::Png);
+        assert_eq!(decoded.dimensions(), (120, 80));
+    }
+
+    #[test]
+    fn resize_image_returns_decode_error_for_invalid_input_bytes() {
+        let input = vec![0x00, 0x11, 0x22, 0x33];
+        let options = ResizeOptions {
+            width: Some(32),
+            height: Some(32),
+            quality: None,
+            format: "jpg".to_string(),
+            brightness: 0.5,
+            resampling: 4,
+        };
+
+        let err = resize_image_with_options(&input, options).unwrap_err();
+        assert!(matches!(err, ToolkitError::DecodeFailed(_)));
+    }
+
+    #[test]
+    fn resize_image_encodes_as_webp() {
+        let input = make_test_png(96, 64);
+        let options = ResizeOptions {
+            width: Some(48),
+            height: Some(32),
+            quality: Some(0.7),
+            format: "webp".to_string(),
+            brightness: 0.5,
+            resampling: 4,
+        };
+
+        let output = resize_image_with_options(&input, options).unwrap();
+        let (format, decoded) = decode_image(&output);
+
+        assert_eq!(format, ImageFormat::WebP);
+        assert_eq!(decoded.dimensions(), (48, 32));
+    }
+
+    #[test]
     fn toolkit_error_user_messages_follow_exposure_policy() {
         assert_eq!(ToolkitError::InvalidOptions("x".to_string()).user_message(), "Invalid options");
         assert_eq!(ToolkitError::UnsupportedFormat.user_message(), "Unsupported format");
