@@ -11,6 +11,8 @@ Demo: https://2yh02.github.io/img-toolkit
 - [Usage](#usage)
 - [Functions](#functions)
 - [Options](#options)
+- [Defaults and Input Validation](#defaults-and-input-validation)
+- [Error Handling Policy](#error-handling-policy)
 - [Quality Behavior](#quality-behavior)
 - [Quality Comparison](#quality-comparison)
 - [Vite Setup for WASM](#vite-setup-for-wasm)
@@ -95,7 +97,7 @@ adjustBrightness(file: File, options: BrightnessOptions): Promise<File>
 | ------------ | ------ | ------------------------------------------------------------------------------------------------- |
 | `width`      | number | (Optional) Target width in pixels. If omitted, width is auto-adjusted.                           |
 | `height`     | number | (Optional) Target height in pixels. If omitted, height is auto-adjusted.                         |
-| `quality`    | number | (Optional) 0.0 to 1.0. Effective for JPEG and WebP output.                                        |
+| `quality`    | number | (Optional) 0.0 to 1.0. Effective for JPEG and WebP output. Defaults to `0.7`. Non-finite values (e.g. `NaN`) are sanitized to the default. |
 | `format`     | string | Output format (`"jpg"`, `"png"`, `"webp"`).                                                      |
 | `brightness` | number | (Optional) 0.0 to 1.0. Defaults to 0.5.                                                           |
 | `resampling` | number | (Optional) 0 to 10. Defaults to 4.                                                                |
@@ -107,21 +109,38 @@ adjustBrightness(file: File, options: BrightnessOptions): Promise<File>
 | `width`      | number | (Optional) Target width in pixels.                     |
 | `height`     | number | (Optional) Target height in pixels.                    |
 | `resampling` | number | (Optional) 0 to 10. Defaults to 4.                     |
-| `quality`    | number | (Optional) 0.0 to 1.0. Effective if source is JPEG.    |
+| `quality`    | number | (Optional) 0.0 to 1.0. Effective if source is JPEG. Defaults to `0.7`. Non-finite values are sanitized to the default. |
 
 ### `ConvertFormatOptions`
 
 | Option    | Type   | Description                                            |
 | --------- | ------ | ------------------------------------------------------ |
 | `format`  | string | Output format (`"jpg"`, `"png"`, `"webp"`).           |
-| `quality` | number | (Optional) 0.0 to 1.0. Effective for JPEG and WebP output. |
+| `quality` | number | (Optional) 0.0 to 1.0. Effective for JPEG and WebP output. Defaults to `0.7`. Non-finite values are sanitized to the default. |
 
 ### `BrightnessOptions`
 
 | Option       | Type   | Description                                         |
 | ------------ | ------ | --------------------------------------------------- |
-| `brightness` | number | 0.0 to 1.0                                          |
+| `brightness` | number | 0.0 to 1.0. Defaults to `0.5`. Non-finite values are sanitized to the default. |
 | `quality`    | number | (Optional) 0.0 to 1.0. Effective if source is JPEG. |
+
+## Defaults and Input Validation
+
+- `quality` defaults to `0.7` when omitted.
+- `brightness` defaults to `0.5` when omitted.
+- `resampling` defaults to `4` when omitted.
+- `quality` and `brightness` are clamped to valid ranges (`0.0..1.0`), and non-finite values such as `NaN` / `Infinity` are sanitized to safe defaults.
+- `resampling` is clamped to `0..10`, and non-finite values are sanitized to default.
+
+## Error Handling Policy
+
+- User-facing errors are intentionally generic and safe for client contexts.
+- Internal low-level encoder/decoder details are logged internally and are not returned directly to API consumers.
+- Typical user-facing messages include:
+  - `Invalid options`
+  - `Unsupported format`
+  - `Image processing failed`
 
 ## Quality Behavior
 
