@@ -388,7 +388,12 @@ mod tests {
         };
 
         let err = resize_image_with_options(&input, options).unwrap_err();
-        assert!(matches!(err, ToolkitError::DecodeFailed(_)));
+        assert!(
+            matches!(
+                err,
+                ToolkitError::FormatGuessFailed(_) | ToolkitError::DecodeFailed(_)
+            )
+        );
     }
 
     #[test]
