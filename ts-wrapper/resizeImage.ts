@@ -35,7 +35,7 @@ export type ConvertFormatOptions = {
 };
 
 export type BrightnessOptions = {
-  brightness: number;
+  brightness?: number;
   /**
    * 0.0 to 1.0. Effective when the source image is JPEG.
    */
