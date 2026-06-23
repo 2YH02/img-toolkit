@@ -140,17 +140,17 @@ async function processWithWasm(
 
   const result = resize_image(uint8, sanitizedOptions);
   const output = useWebpLossy
-    ? await encodeWebpLossyInBrowser(normalizeBytes(result), sanitizedOptions.quality)
-    : normalizeBytes(result);
+    ? await encodeWebpLossyInBrowser(result, sanitizedOptions.quality)
+    : result;
   const mime = options.format === "jpg" ? "image/jpeg" : `image/${options.format}`;
 
-  return new File([toArrayBuffer(output)], `resized.${options.format}`, {
+  return new File([output], `resized.${options.format}`, {
     type: mime,
   });
 }
 
 async function encodeWebpLossyInBrowser(
-  input: Uint8Array<ArrayBuffer>,
+  input: Uint8Array,
   quality: number
 ): Promise<Uint8Array> {
   try {
@@ -159,7 +159,7 @@ async function encodeWebpLossyInBrowser(
       throw new Error("Image processing failed.");
     }
 
-    const blob = new Blob([toArrayBuffer(normalizeBytes(input))], {
+    const blob = new Blob([input], {
       type: "image/png",
     });
     const bitmap = await createImageBitmap(blob);
@@ -213,15 +213,6 @@ async function encodeWebpLossyInBrowser(
 async function blobToUint8Array(blob: Blob): Promise<Uint8Array<ArrayBuffer>> {
   const arr = await blob.arrayBuffer();
   return new Uint8Array(arr);
-}
-
-function normalizeBytes(input: Uint8Array): Uint8Array<ArrayBuffer> {
-  return Uint8Array.from(input);
-}
-
-function toArrayBuffer(input: Uint8Array): ArrayBuffer {
-  const normalized = normalizeBytes(input);
-  return normalized.buffer;
 }
 
 function logInternalError(message: string, error?: unknown): void {
