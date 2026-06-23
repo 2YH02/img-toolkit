@@ -9,7 +9,6 @@ use image::{
     ImageReader,
     DynamicImage,
     ImageFormat,
-    ExtendedColorType,
     ImageEncoder,
 };
 use image::codecs::jpeg::JpegEncoder;
@@ -103,12 +102,15 @@ fn resize_image_impl(data: &[u8], options: JsValue) -> ToolkitResult<Box<[u8]>> 
 fn resize_image_with_options(data: &[u8], options: ResizeOptions) -> ToolkitResult<Box<[u8]>> {
     let value = map_brightness(options.brightness);
 
-    let img = ImageReader::new(Cursor::new(data))
+    let mut img = ImageReader::new(Cursor::new(data))
         .with_guessed_format()
         .map_err(|e| ToolkitError::FormatGuessFailed(e.to_string()))?
         .decode()
-        .map_err(|e| ToolkitError::DecodeFailed(e.to_string()))?
-        .brighten(value);
+        .map_err(|e| ToolkitError::DecodeFailed(e.to_string()))?;
+
+    if value != 0 {
+        img = img.brighten(value);
+    }
 
     let (orig_w, orig_h) = img.dimensions();
 
@@ -198,8 +200,8 @@ fn normalized_quality_u8(raw_quality: Option<f32>) -> u8 {
 }
 
 fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> ToolkitResult<()> {
-    let rgba = image.to_rgba8();
-    let (w, h) = rgba.dimensions();
+    let (w, h) = image.dimensions();
+    let color = image.color();
 
     let encoder = PngEncoder::new_with_quality(
         buffer,
@@ -208,7 +210,7 @@ fn encode_as_png(image: &DynamicImage, buffer: &mut Vec<u8>) -> ToolkitResult<()
     );
 
     encoder
-        .write_image(&rgba, w, h, ExtendedColorType::Rgba8)
+        .write_image(image.as_bytes(), w, h, color.into())
         .map_err(|e| ToolkitError::PngEncodeFailed(e.to_string()))
 }
 
@@ -216,12 +218,12 @@ fn encode_as_webp(
     image: &DynamicImage,
     buffer: &mut Vec<u8>
 ) -> ToolkitResult<()> {
-    let rgba = image.to_rgba8();
-    let (width, height) = rgba.dimensions();
+    let (width, height) = image.dimensions();
+    let color = image.color();
 
     let encoder = WebPEncoder::new_lossless(buffer);
     encoder
-        .encode(&rgba, width, height, ExtendedColorType::Rgba8)
+        .encode(image.as_bytes(), width, height, color.into())
         .map_err(|_| {
             console::error_1(&JsValue::from_str("[img-toolkit][ERR_WEBP_ENCODE] encode failed"));
             ToolkitError::WebpEncodeFailed
