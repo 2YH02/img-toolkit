@@ -24,7 +24,10 @@ Demo: https://2yh02.github.io/img-toolkit
 - ⚡ **Fast & Efficient**: Powered by Rust and WebAssembly.
 - 📸 **Supports JPEG, PNG, WebP** formats.
 - 📐 **Resizing** with automatic aspect-ratio handling.
-- 🎚️ **Adjust brightness** easily.
+- 🎚️ **Adjust brightness & contrast** easily.
+- ✂️ **Image Cropping**: Extract specific regions dynamically.
+- 🔄 **Rotate & Flip**: 90/180/270 degree rotation and horizontal/vertical mirroring.
+- 🎨 **Creative Filters**: Gaussian blur and grayscale conversion.
 - 🔍 **Multiple resampling filters** (Nearest, Triangle, CatmullRom, Gaussian, Lanczos3).
 
 ## Installation
@@ -59,6 +62,15 @@ const processed = await processImage(file, {
   format: "jpg",
   brightness: 0.5,
   resampling: 2,
+  rotate: 90,
+  flip: "horizontal",
+  cropX: 10,
+  cropY: 10,
+  cropW: 400,
+  cropH: 300,
+  contrast: 0.2,
+  blur: 1.5,
+  grayscale: true,
 });
 ```
 
@@ -99,8 +111,17 @@ adjustBrightness(file: File, options: BrightnessOptions): Promise<File>
 | `height`     | number | (Optional) Target height in pixels. If omitted, height is auto-adjusted.                         |
 | `quality`    | number | (Optional) 0.0 to 1.0. Effective for JPEG and WebP output. Defaults to `0.7`. Non-finite values (e.g. `NaN`) are sanitized to the default. |
 | `format`     | string | Output format (`"jpg"`, `"png"`, `"webp"`).                                                      |
-| `brightness` | number | (Optional) 0.0 to 1.0. Defaults to 0.5.                                                           |
-| `resampling` | number | (Optional) 0 to 10. Defaults to 4.                                                                |
+| `brightness` | number | (Optional) 0.0 to 1.0. Defaults to `0.5`.                                                           |
+| `resampling` | number | (Optional) 0 to 10. Defaults to `4`.                                                                |
+| `rotate`     | number | (Optional) Rotation angle (`90`, `180`, `270`).                                                    |
+| `flip`       | string | (Optional) Flip direction (`"horizontal"`, `"vertical"`, `"both"`).                                |
+| `cropX`      | number | (Optional) Bounding box X coordinate for cropping.                                                |
+| `cropY`      | number | (Optional) Bounding box Y coordinate for cropping.                                                |
+| `cropW`      | number | (Optional) Bounding box width for cropping. (Both `cropW` and `cropH` must be > 0 to apply).      |
+| `cropH`      | number | (Optional) Bounding box height for cropping. (Both `cropW` and `cropH` must be > 0 to apply).     |
+| `contrast`   | number | (Optional) Contrast adjustment factor from `-1.0` to `1.0` (`0.0` is neutral/no change).          |
+| `blur`       | number | (Optional) Gaussian blur sigma value.                                                             |
+| `grayscale`  | boolean| (Optional) Convert the image to grayscale if `true`.                                              |
 
 ### `ResizeOnlyOptions`
 
