@@ -78,6 +78,7 @@ impl From<ToolkitError> for JsValue {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ResizeOptions {
     width: Option<u32>,
     height: Option<u32>,
@@ -85,6 +86,15 @@ struct ResizeOptions {
     format: String,
     brightness: f32,
     resampling: u32,
+    rotate: Option<u32>,
+    flip: Option<String>,
+    crop_x: Option<u32>,
+    crop_y: Option<u32>,
+    crop_w: Option<u32>,
+    crop_h: Option<u32>,
+    contrast: Option<f32>,
+    blur: Option<f32>,
+    grayscale: Option<bool>,
 }
 
 #[wasm_bindgen]
@@ -108,10 +118,61 @@ fn resize_image_with_options(data: &[u8], options: ResizeOptions) -> ToolkitResu
         .decode()
         .map_err(|e| ToolkitError::DecodeFailed(e.to_string()))?;
 
+    // 1. Crop (applied first for performance)
+    if let (Some(x), Some(y), Some(w), Some(h)) = (options.crop_x, options.crop_y, options.crop_w, options.crop_h) {
+        if w > 0 && h > 0 {
+            let (orig_w, orig_h) = img.dimensions();
+            let x = x.min(orig_w);
+            let y = y.min(orig_h);
+            let w = w.min(orig_w - x);
+            let h = h.min(orig_h - y);
+            if w > 0 && h > 0 {
+                img = img.crop_imm(x, y, w, h);
+            }
+        }
+    }
+
+    // 2. Adjustments (Brightness, Contrast, Grayscale, Blur)
     if value != 0 {
         img = img.brighten(value);
     }
 
+    if let Some(contrast) = options.contrast {
+        if contrast != 0.0 && contrast.is_finite() {
+            img = img.adjust_contrast(contrast);
+        }
+    }
+
+    if let Some(true) = options.grayscale {
+        img = img.grayscale();
+    }
+
+    if let Some(blur) = options.blur {
+        if blur > 0.0 && blur.is_finite() {
+            img = img.blur(blur);
+        }
+    }
+
+    // 3. Transformations (Rotate & Flip)
+    if let Some(rotate) = options.rotate {
+        img = match rotate {
+            90 => img.rotate90(),
+            180 => img.rotate180(),
+            270 => img.rotate270(),
+            _ => img,
+        };
+    }
+
+    if let Some(flip) = &options.flip {
+        img = match flip.as_str() {
+            "horizontal" | "h" => img.fliph(),
+            "vertical" | "v" => img.flipv(),
+            "both" | "hv" | "vh" => img.fliph().flipv(),
+            _ => img,
+        };
+    }
+
+    // 4. Resize
     let (orig_w, orig_h) = img.dimensions();
 
     let filter = get_filter_type(options.resampling);
@@ -266,6 +327,26 @@ mod tests {
         (format, image)
     }
 
+    fn make_test_options(format: &str) -> ResizeOptions {
+        ResizeOptions {
+            width: None,
+            height: None,
+            quality: None,
+            format: format.to_string(),
+            brightness: 0.5,
+            resampling: 4,
+            rotate: None,
+            flip: None,
+            crop_x: None,
+            crop_y: None,
+            crop_w: None,
+            crop_h: None,
+            contrast: None,
+            blur: None,
+            grayscale: None,
+        }
+    }
+
     #[test]
     fn map_brightness_clamps_range() {
         assert_eq!(map_brightness(-1.0), -255);
@@ -307,14 +388,9 @@ mod tests {
     #[test]
     fn resize_image_exact_dimensions_encodes_as_jpeg() {
         let input = make_test_png(120, 80);
-        let options = ResizeOptions {
-            width: Some(64),
-            height: Some(64),
-            quality: None,
-            format: "jpg".to_string(),
-            brightness: 0.5,
-            resampling: 4,
-        };
+        let mut options = make_test_options("jpg");
+        options.width = Some(64);
+        options.height = Some(64);
 
         let output = resize_image_with_options(&input, options).unwrap();
         let (format, decoded) = decode_image(&output);
@@ -326,14 +402,9 @@ mod tests {
     #[test]
     fn resize_image_single_dimension_preserves_aspect_ratio() {
         let input = make_test_png(120, 80);
-        let options = ResizeOptions {
-            width: Some(60),
-            height: None,
-            quality: Some(0.7),
-            format: "png".to_string(),
-            brightness: 0.5,
-            resampling: 4,
-        };
+        let mut options = make_test_options("png");
+        options.width = Some(60);
+        options.quality = Some(0.7);
 
         let output = resize_image_with_options(&input, options).unwrap();
         let (format, decoded) = decode_image(&output);
@@ -345,14 +416,9 @@ mod tests {
     #[test]
     fn resize_image_rejects_unsupported_format() {
         let input = make_test_png(32, 32);
-        let options = ResizeOptions {
-            width: Some(32),
-            height: Some(32),
-            quality: None,
-            format: "gif".to_string(),
-            brightness: 0.5,
-            resampling: 4,
-        };
+        let mut options = make_test_options("gif");
+        options.width = Some(32);
+        options.height = Some(32);
 
         let err = resize_image_with_options(&input, options).unwrap_err();
         assert!(matches!(err, ToolkitError::UnsupportedFormat));
@@ -361,14 +427,7 @@ mod tests {
     #[test]
     fn resize_image_without_dimensions_keeps_original_size() {
         let input = make_test_png(120, 80);
-        let options = ResizeOptions {
-            width: None,
-            height: None,
-            quality: None,
-            format: "png".to_string(),
-            brightness: 0.5,
-            resampling: 4,
-        };
+        let options = make_test_options("png");
 
         let output = resize_image_with_options(&input, options).unwrap();
         let (format, decoded) = decode_image(&output);
@@ -380,14 +439,9 @@ mod tests {
     #[test]
     fn resize_image_returns_decode_error_for_invalid_input_bytes() {
         let input = vec![0x00, 0x11, 0x22, 0x33];
-        let options = ResizeOptions {
-            width: Some(32),
-            height: Some(32),
-            quality: None,
-            format: "jpg".to_string(),
-            brightness: 0.5,
-            resampling: 4,
-        };
+        let mut options = make_test_options("jpg");
+        options.width = Some(32);
+        options.height = Some(32);
 
         let err = resize_image_with_options(&input, options).unwrap_err();
         assert!(
@@ -401,20 +455,38 @@ mod tests {
     #[test]
     fn resize_image_encodes_as_webp() {
         let input = make_test_png(96, 64);
-        let options = ResizeOptions {
-            width: Some(48),
-            height: Some(32),
-            quality: Some(0.7),
-            format: "webp".to_string(),
-            brightness: 0.5,
-            resampling: 4,
-        };
+        let mut options = make_test_options("webp");
+        options.width = Some(48);
+        options.height = Some(32);
+        options.quality = Some(0.7);
 
         let output = resize_image_with_options(&input, options).unwrap();
         let (format, decoded) = decode_image(&output);
 
         assert_eq!(format, ImageFormat::WebP);
         assert_eq!(decoded.dimensions(), (48, 32));
+    }
+
+    #[test]
+    fn test_new_features_crop_rotate_flip_adjustments() {
+        let input = make_test_png(100, 100);
+        let mut options = make_test_options("png");
+        options.crop_x = Some(10);
+        options.crop_y = Some(10);
+        options.crop_w = Some(80);
+        options.crop_h = Some(80);
+        options.rotate = Some(90);
+        options.flip = Some("horizontal".to_string());
+        options.contrast = Some(0.5);
+        options.grayscale = Some(true);
+        options.blur = Some(1.0);
+
+        let output = resize_image_with_options(&input, options).unwrap();
+        let (format, decoded) = decode_image(&output);
+
+        assert_eq!(format, ImageFormat::Png);
+        // Original: 100x100 -> Cropped to 80x80 -> Rotated 90 -> 80x80
+        assert_eq!(decoded.dimensions(), (80, 80));
     }
 
     #[test]
