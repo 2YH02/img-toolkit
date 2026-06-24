@@ -24,6 +24,26 @@ const widthWrap = document.getElementById("width-wrap");
 const heightWrap = document.getElementById("height-wrap");
 const resampleWrap = document.getElementById("resample-wrap");
 
+const transformWrap = document.getElementById("transform-wrap");
+const filtersWrap = document.getElementById("filters-wrap");
+const grayscaleWrap = document.getElementById("grayscale-wrap");
+const cropCoordsWrap = document.getElementById("crop-coords-wrap");
+const cropHelp = document.getElementById("crop-help");
+
+const rotateInput = document.getElementById("rotate-input");
+const flipInput = document.getElementById("flip-input");
+const contrastInput = document.getElementById("contrast-input");
+const blurInput = document.getElementById("blur-input");
+const grayscaleInput = document.getElementById("grayscale-input");
+const cropXInput = document.getElementById("crop-x-input");
+const cropYInput = document.getElementById("crop-y-input");
+const cropWInput = document.getElementById("crop-w-input");
+const cropHInput = document.getElementById("crop-h-input");
+
+const compareButton = document.getElementById("compare-button");
+const autorunInput = document.getElementById("autorun-input");
+let originalObjectUrl = null;
+
 let selectedFile = null;
 let objectUrl = null;
 let reqId = 0;
@@ -62,9 +82,16 @@ fileInput.addEventListener("change", (e) => {
     const size = formatBytes(selectedFile.size);
     imageSize.textContent = size;
     imageName.textContent = selectedFile.name;
+
+    if (originalObjectUrl) URL.revokeObjectURL(originalObjectUrl);
+    originalObjectUrl = URL.createObjectURL(selectedFile);
+    compareButton.style.display = "block";
+  } else {
+    compareButton.style.display = "none";
   }
 
   syncUiByMode();
+  triggerAutoRun();
 });
 
 operationInput.addEventListener("change", syncUiByMode);
@@ -108,8 +135,15 @@ function syncUiByMode() {
   setVisible(brightnessWrap, mode === "process" || mode === "brightness");
   setVisible(qualityWrap, true);
 
+  const isProcess = mode === "process";
+  setVisible(transformWrap, isProcess);
+  setVisible(filtersWrap, isProcess);
+  setVisible(grayscaleWrap, isProcess);
+  setVisible(cropCoordsWrap, isProcess);
+  setVisible(cropHelp, isProcess);
+
   if (mode === "process") {
-    modeHelp.textContent = "processImage: resize + convert + brightness in one call.";
+    modeHelp.textContent = "processImage: resize + convert + brightness + crop + transform + filters in one call.";
   } else if (mode === "resize") {
     modeHelp.textContent = "resize: keep source format and resize only.";
   } else if (mode === "convert") {
@@ -146,6 +180,16 @@ async function runOperationInWorker(mode, file) {
   const height = positiveOrUndefined(heightInput.value);
   const resampling = asNumber(resampleInput.value);
 
+  const rotate = asNumber(rotateInput.value);
+  const flip = flipInput.value === "none" ? undefined : flipInput.value;
+  const contrast = asNumber(contrastInput.value);
+  const blur = asNumber(blurInput.value);
+  const grayscale = grayscaleInput.checked;
+  const cropX = asNumber(cropXInput.value);
+  const cropY = asNumber(cropYInput.value);
+  const cropW = asNumber(cropWInput.value);
+  const cropH = asNumber(cropHInput.value);
+
   let options;
   if (mode === "process") {
     options = {
@@ -155,6 +199,15 @@ async function runOperationInWorker(mode, file) {
       format,
       brightness,
       resampling,
+      rotate: rotate > 0 ? rotate : undefined,
+      flip,
+      cropX: cropW > 0 && cropH > 0 ? cropX : undefined,
+      cropY: cropW > 0 && cropH > 0 ? cropY : undefined,
+      cropW: cropW > 0 ? cropW : undefined,
+      cropH: cropH > 0 ? cropH : undefined,
+      contrast: contrast !== 0 ? contrast : undefined,
+      blur: blur > 0 ? blur : undefined,
+      grayscale: grayscale || undefined,
     };
   } else if (mode === "resize") {
     options = {
@@ -242,4 +295,72 @@ function formatBytes(bytes, decimals = 2) {
   return `${value.toFixed(dm)} ${sizes[i]}`;
 }
 
+// Hold to Compare events
+const startCompare = (e) => {
+  if (e) e.preventDefault();
+  if (originalObjectUrl) {
+    previewImg.src = originalObjectUrl;
+    compareButton.textContent = "Viewing Original";
+    compareButton.style.background = "linear-gradient(135deg, var(--accent), var(--accent-2))";
+  }
+};
+
+const endCompare = (e) => {
+  if (e) e.preventDefault();
+  if (objectUrl) {
+    previewImg.src = objectUrl;
+  }
+  compareButton.textContent = "Hold to Compare";
+  compareButton.style.background = "linear-gradient(135deg, #506a85, #758eab)";
+};
+
+compareButton.addEventListener("mousedown", startCompare);
+compareButton.addEventListener("touchstart", startCompare, { passive: false });
+compareButton.addEventListener("mouseup", endCompare);
+compareButton.addEventListener("mouseleave", endCompare);
+compareButton.addEventListener("touchend", endCompare);
+
+// Real-time value display
+function updateValueBadges() {
+  document.getElementById("quality-val").textContent = Number(qualityInput.value).toFixed(2);
+  
+  const brightnessPercent = Math.round(Number(brightnessInput.value) * 100);
+  document.getElementById("brightness-val").textContent = `${brightnessPercent}%`;
+  
+  const contrastPercent = Math.round(Number(contrastInput.value) * 100);
+  const contrastSign = contrastPercent > 0 ? "+" : "";
+  document.getElementById("contrast-val").textContent = `${contrastSign}${contrastPercent}%`;
+  
+  document.getElementById("blur-val").textContent = `${Number(blurInput.value).toFixed(1)}px`;
+}
+
+// Throttled Auto-run on change
+let autorunTimeout = null;
+function triggerAutoRun() {
+  if (!selectedFile) return;
+  if (!autorunInput.checked) return;
+
+  clearTimeout(autorunTimeout);
+  autorunTimeout = setTimeout(() => {
+    convertBtn.click();
+  }, 200);
+}
+
+// Attach event listeners to all option inputs
+const optionElements = [
+  qualityInput, brightnessInput, widthInput, heightInput,
+  resampleInput, rotateInput, flipInput, contrastInput,
+  blurInput, grayscaleInput, formatSelect,
+  cropXInput, cropYInput, cropWInput, cropHInput
+];
+
+optionElements.forEach(el => {
+  el.addEventListener("input", () => {
+    updateValueBadges();
+    triggerAutoRun();
+  });
+});
+
+// Initialize badges on load
+updateValueBadges();
 syncUiByMode();
