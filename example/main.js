@@ -24,6 +24,22 @@ const widthWrap = document.getElementById("width-wrap");
 const heightWrap = document.getElementById("height-wrap");
 const resampleWrap = document.getElementById("resample-wrap");
 
+const transformWrap = document.getElementById("transform-wrap");
+const filtersWrap = document.getElementById("filters-wrap");
+const grayscaleWrap = document.getElementById("grayscale-wrap");
+const cropCoordsWrap = document.getElementById("crop-coords-wrap");
+const cropHelp = document.getElementById("crop-help");
+
+const rotateInput = document.getElementById("rotate-input");
+const flipInput = document.getElementById("flip-input");
+const contrastInput = document.getElementById("contrast-input");
+const blurInput = document.getElementById("blur-input");
+const grayscaleInput = document.getElementById("grayscale-input");
+const cropXInput = document.getElementById("crop-x-input");
+const cropYInput = document.getElementById("crop-y-input");
+const cropWInput = document.getElementById("crop-w-input");
+const cropHInput = document.getElementById("crop-h-input");
+
 let selectedFile = null;
 let objectUrl = null;
 let reqId = 0;
@@ -108,8 +124,15 @@ function syncUiByMode() {
   setVisible(brightnessWrap, mode === "process" || mode === "brightness");
   setVisible(qualityWrap, true);
 
+  const isProcess = mode === "process";
+  setVisible(transformWrap, isProcess);
+  setVisible(filtersWrap, isProcess);
+  setVisible(grayscaleWrap, isProcess);
+  setVisible(cropCoordsWrap, isProcess);
+  setVisible(cropHelp, isProcess);
+
   if (mode === "process") {
-    modeHelp.textContent = "processImage: resize + convert + brightness in one call.";
+    modeHelp.textContent = "processImage: resize + convert + brightness + crop + transform + filters in one call.";
   } else if (mode === "resize") {
     modeHelp.textContent = "resize: keep source format and resize only.";
   } else if (mode === "convert") {
@@ -146,6 +169,16 @@ async function runOperationInWorker(mode, file) {
   const height = positiveOrUndefined(heightInput.value);
   const resampling = asNumber(resampleInput.value);
 
+  const rotate = asNumber(rotateInput.value);
+  const flip = flipInput.value === "none" ? undefined : flipInput.value;
+  const contrast = asNumber(contrastInput.value);
+  const blur = asNumber(blurInput.value);
+  const grayscale = grayscaleInput.checked;
+  const cropX = asNumber(cropXInput.value);
+  const cropY = asNumber(cropYInput.value);
+  const cropW = asNumber(cropWInput.value);
+  const cropH = asNumber(cropHInput.value);
+
   let options;
   if (mode === "process") {
     options = {
@@ -155,6 +188,15 @@ async function runOperationInWorker(mode, file) {
       format,
       brightness,
       resampling,
+      rotate: rotate > 0 ? rotate : undefined,
+      flip,
+      cropX: cropW > 0 && cropH > 0 ? cropX : undefined,
+      cropY: cropW > 0 && cropH > 0 ? cropY : undefined,
+      cropW: cropW > 0 ? cropW : undefined,
+      cropH: cropH > 0 ? cropH : undefined,
+      contrast: contrast !== 0 ? contrast : undefined,
+      blur: blur > 0 ? blur : undefined,
+      grayscale: grayscale || undefined,
     };
   } else if (mode === "resize") {
     options = {

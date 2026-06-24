@@ -110,7 +110,7 @@
               adjusted to maintain the aspect ratio
             </div>
             <div class="option-container">
-              <div class="option-input-wrap mb-3" id="resample-wrap">
+              <div class="option-input-wrap" id="resample-wrap">
                 <label for="resample-input">resample</label>
                 <input
                   type="number"
@@ -121,6 +121,85 @@
                   value="4"
                 />
               </div>
+              <div class="option-input-wrap" id="grayscale-wrap" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
+                <input
+                  type="checkbox"
+                  id="grayscale-input"
+                  style="width: 20px; height: 20px; margin: 0; cursor: pointer;"
+                />
+                <label for="grayscale-input" style="cursor: pointer; user-select: none; margin: 0;">Grayscale</label>
+              </div>
+            </div>
+            <div class="divider"></div>
+            <p>Transform & Filters</p>
+            <div class="divider"></div>
+            <div class="option-container" id="transform-wrap">
+              <div class="option-input-wrap">
+                <label for="rotate-input">rotate</label>
+                <select id="rotate-input" name="rotate">
+                  <option value="0" selected>None (0°)</option>
+                  <option value="90">90°</option>
+                  <option value="180">180°</option>
+                  <option value="270">270°</option>
+                </select>
+              </div>
+              <div class="option-input-wrap">
+                <label for="flip-input">flip</label>
+                <select id="flip-input" name="flip">
+                  <option value="none" selected>None</option>
+                  <option value="horizontal">Horizontal</option>
+                  <option value="vertical">Vertical</option>
+                  <option value="both">Both</option>
+                </select>
+              </div>
+            </div>
+            <div class="option-container" id="filters-wrap">
+              <div class="option-input-wrap">
+                <label for="contrast-input">contrast</label>
+                <input
+                  type="number"
+                  id="contrast-input"
+                  min="-1"
+                  max="1"
+                  step="0.1"
+                  value="0"
+                />
+              </div>
+              <div class="option-input-wrap">
+                <label for="blur-input">blur (sigma)</label>
+                <input
+                  type="number"
+                  id="blur-input"
+                  min="0"
+                  max="10"
+                  step="0.5"
+                  value="0"
+                />
+              </div>
+            </div>
+            <div class="divider"></div>
+            <p>Crop</p>
+            <div class="divider"></div>
+            <div class="option-container" id="crop-coords-wrap" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+              <div class="option-input-wrap">
+                <label for="crop-x-input">X</label>
+                <input type="number" id="crop-x-input" min="0" value="0" />
+              </div>
+              <div class="option-input-wrap">
+                <label for="crop-y-input">Y</label>
+                <input type="number" id="crop-y-input" min="0" value="0" />
+              </div>
+              <div class="option-input-wrap">
+                <label for="crop-w-input">W</label>
+                <input type="number" id="crop-w-input" min="0" value="0" />
+              </div>
+              <div class="option-input-wrap">
+                <label for="crop-h-input">H</label>
+                <input type="number" id="crop-h-input" min="0" value="0" />
+              </div>
+            </div>
+            <div class="mb-3 color-main font-4" id="crop-help">
+              Set Width (W) and Height (H) to values greater than 0 to apply cropping.
             </div>
           </div>
           <div>
