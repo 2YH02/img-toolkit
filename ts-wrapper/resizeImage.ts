@@ -13,6 +13,42 @@ export type ProcessImageOptions = {
   format: ImageFormat;
   brightness?: number;
   resampling?: number;
+  /**
+   * Rotation angle: 90, 180, 270.
+   */
+  rotate?: number;
+  /**
+   * Flip direction: "horizontal", "vertical", "both", or "none".
+   */
+  flip?: "horizontal" | "vertical" | "both" | "none";
+  /**
+   * X coordinate of the top-left corner of the crop box.
+   */
+  cropX?: number;
+  /**
+   * Y coordinate of the top-left corner of the crop box.
+   */
+  cropY?: number;
+  /**
+   * Width of the crop box.
+   */
+  cropW?: number;
+  /**
+   * Height of the crop box.
+   */
+  cropH?: number;
+  /**
+   * Contrast adjustment factor: -1.0 to 1.0 (0.0 means no change).
+   */
+  contrast?: number;
+  /**
+   * Gaussian blur sigma value (0.0 or undefined means no blur).
+   */
+  blur?: number;
+  /**
+   * Convert the image to grayscale if true.
+   */
+  grayscale?: boolean;
 };
 
 export type ResizeOnlyOptions = {
@@ -144,7 +180,7 @@ async function processWithWasm(
     : result;
   const mime = options.format === "jpg" ? "image/jpeg" : `image/${options.format}`;
 
-  return new File([output], `resized.${options.format}`, {
+  return new File([output as any], `resized.${options.format}`, {
     type: mime,
   });
 }
@@ -159,7 +195,7 @@ async function encodeWebpLossyInBrowser(
       throw new Error("Image processing failed.");
     }
 
-    const blob = new Blob([input], {
+    const blob = new Blob([input as any], {
       type: "image/png",
     });
     const bitmap = await createImageBitmap(blob);

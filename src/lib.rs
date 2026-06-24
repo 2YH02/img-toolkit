@@ -139,7 +139,9 @@ fn resize_image_with_options(data: &[u8], options: ResizeOptions) -> ToolkitResu
 
     if let Some(contrast) = options.contrast {
         if contrast != 0.0 && contrast.is_finite() {
-            img = img.adjust_contrast(contrast);
+            // Map 0.0 (neutral) to 1.0 factor, and clamp to >= 0.0
+            let factor = (contrast + 1.0).max(0.0);
+            img = img.adjust_contrast(factor);
         }
     }
 
